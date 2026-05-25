@@ -1,0 +1,37 @@
+--- a/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:01:41.188438530 +0800
++++ b/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:02:16.646062321 +0800
+@@ -513,6 +513,26 @@
+     channel.write(LSP.Documentation_Response(ml_settings))
+ 
+ 
++  /* theory status */
++
++  def theory_status(id: LSP.Id): Unit = {
++    val now = Date.now()
++    val theories =
++      (for (model <- resources.get_models().iterator) yield {
++        val snapshot = resources.snapshot(model)
++        val status = Document_Status.Node_Status.make(
++          now = now,
++          state = snapshot.state,
++          version = snapshot.version,
++          name = model.node_name)
++        model.node_name.json ++
++          JSON.Object("external" -> model.external_file) ++
++          status.json
++      }).toList
++    channel.write(LSP.Theory_Status.reply(id, theories))
++  }
++
++
+   /* main loop */
+ 
+   def start(): Unit = {
+@@ -559,6 +579,7 @@
+           case LSP.Sledgehammer_Cancel() => sledgehammer.cancel()
+           case LSP.Sledgehammer_Locate() => sledgehammer.locate()
+           case LSP.Sledgehammer_Sendback(text) => sledgehammer.sendback(text)
++          case LSP.Theory_Status(id) => theory_status(id)
+           case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
+         }
+       }

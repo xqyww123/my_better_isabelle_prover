@@ -1,0 +1,35 @@
+--- a/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:00:50.022355070 +0800
++++ b/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:01:13.663582332 +0800
+@@ -424,6 +424,24 @@
+   }
+ 
+ 
++  /* theory status */
++
++  def theory_status(id: LSP.Id): Unit = {
++    val theories =
++      (for (model <- resources.get_models().iterator) yield {
++        val snapshot = resources.snapshot(model)
++        val status = Document_Status.Node_Status.make(
++          state = snapshot.state,
++          version = snapshot.version,
++          name = model.node_name)
++        model.node_name.json ++
++          JSON.Object("external" -> model.external_file) ++
++          status.json
++      }).toList
++    channel.write(LSP.Theory_Status.reply(id, theories))
++  }
++
++
+   /* main loop */
+ 
+   def start(): Unit = {
+@@ -458,6 +476,7 @@
+           case LSP.State_Update(id) => State_Panel.update(id)
+           case LSP.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
+           case LSP.Preview_Request(file, column) => request_preview(file, column)
++          case LSP.Theory_Status(id) => theory_status(id)
+           case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
+         }
+       }
