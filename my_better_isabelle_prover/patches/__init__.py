@@ -27,11 +27,35 @@ def available_features(version: str) -> list[str]:
     return sorted(d.name for d in version_dir.iterdir() if d.is_dir())
 
 
+def read_order(version: str) -> list[str]:
+    """Read the optional per-version apply-order file (one feature name per line,
+    '#' comments and blank lines ignored). Earlier = applied earlier."""
+    order_file = PATCHES_DIR / version / "order.txt"
+    if not order_file.is_file():
+        return []
+    order = []
+    for line in order_file.read_text().splitlines():
+        name = line.split("#", 1)[0].strip()
+        if name:
+            order.append(name)
+    return order
+
+
+def ordered_features(version: str) -> list[str]:
+    """Features in dependency apply order: those listed in order.txt first (in that
+    order), then any remaining features alphabetically. Unpatch reverses this."""
+    feats = available_features(version)
+    order = read_order(version)
+    ranked = [f for f in order if f in feats]
+    rest = sorted(f for f in feats if f not in ranked)
+    return ranked + rest
+
+
 def discover_patches(version: str, feature: str | None = None) -> list[PatchInfo]:
     version_dir = PATCHES_DIR / version
     if not version_dir.is_dir():
         return []
-    features = [feature] if feature else available_features(version)
+    features = [feature] if feature else ordered_features(version)
     patches = []
     for feat in features:
         feat_dir = version_dir / feat

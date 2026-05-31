@@ -1,0 +1,11 @@
+# Feature apply order (dependencies first). `unpatch` reverses this.
+# Features not listed here are applied afterwards, alphabetically.
+#
+# cancel_execution's language_server.scala hunks are anchored on lines that
+# theory_status inserts (the `theory_status` method and its `case LSP.Theory_Status`
+# dispatch line), so theory_status MUST be applied before cancel_execution.
+theory_status
+cancel_execution
+
+# register_thy is independent (pure ML, separate file); order does not matter.
+register_thy

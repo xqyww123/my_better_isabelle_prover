@@ -28,13 +28,13 @@ def _ensure_patch_binary() -> None:
 def check_status(isabelle_home: Path, patch: PatchInfo) -> PatchStatus:
     _ensure_patch_binary()
     reverse = subprocess.run(
-        ["patch", "--dry-run", "-R", "-p1", "-s", "-i", str(patch.patch_path)],
+        ["patch", "--dry-run", "-R", "-p1", "-F0", "-s", "-i", str(patch.patch_path)],
         cwd=isabelle_home, capture_output=True,
     )
     if reverse.returncode == 0:
         return PatchStatus.APPLIED
     forward = subprocess.run(
-        ["patch", "--dry-run", "-p1", "-s", "-i", str(patch.patch_path)],
+        ["patch", "--dry-run", "-p1", "-F0", "-s", "-i", str(patch.patch_path)],
         cwd=isabelle_home, capture_output=True,
     )
     if forward.returncode == 0:
@@ -80,7 +80,7 @@ def apply_patch(
         )
         return False
 
-    cmd = ["patch", "-p1", "-i", str(patch.patch_path)]
+    cmd = ["patch", "-p1", "-F0", "-i", str(patch.patch_path)]
     if reverse:
         cmd.insert(1, "-R")
     if dry_run:
@@ -116,8 +116,10 @@ def apply_all(
     if not patches:
         log.warning("No patches to apply.")
         return True
+    # patches arrive in dependency apply order; unpatch must undo in reverse.
+    seq = list(reversed(patches)) if reverse else patches
     success = True
-    for patch in patches:
+    for patch in seq:
         if not apply_patch(isabelle_home, patch, dry_run=dry_run, reverse=reverse, force=force):
             success = False
             if not force:
