@@ -1,0 +1,19 @@
+--- a/src/Tools/VSCode/src/lsp.scala
++++ b/src/Tools/VSCode/src/lsp.scala
+@@ -548,6 +548,16 @@
+       }
+   }
+ 
++  object Theory_Status extends Request0("PIDE/theory_status") {
++    def reply(id: Id, theories: List[JSON.T]): JSON.T =
++      ResponseMessage(id, Some(JSON.Object("theories" -> theories)))
++  }
++
++  object Cancel_Execution extends Request0("PIDE/cancel_execution") {
++    def reply(id: Id): JSON.T =
++      ResponseMessage(id, Some(JSON.Object("cancelled" -> true)))
++  }
++
+ 
+   /* preview */
+ 

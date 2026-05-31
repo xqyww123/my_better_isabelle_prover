@@ -1,6 +1,6 @@
---- a/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:07:58.909573795 +0800
-+++ b/src/Tools/VSCode/src/language_server.scala	2026-05-25 23:55:49.041467546 +0800
-@@ -424,6 +424,26 @@
+--- a/src/Tools/VSCode/src/language_server.scala
++++ b/src/Tools/VSCode/src/language_server.scala
+@@ -424,6 +424,31 @@
    }
  
  
@@ -23,15 +23,21 @@
 +    channel.write(LSP.Theory_Status.reply(id, theories))
 +  }
 +
++  def cancel_execution(id: LSP.Id): Unit = {
++    session.protocol_command("Document.cancel_execution")
++    channel.write(LSP.Cancel_Execution.reply(id))
++  }
++
 +
    /* main loop */
  
    def start(): Unit = {
-@@ -458,6 +478,7 @@
+@@ -458,6 +483,8 @@
            case LSP.State_Update(id) => State_Panel.update(id)
            case LSP.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
            case LSP.Preview_Request(file, column) => request_preview(file, column)
 +          case LSP.Theory_Status(id) => theory_status(id)
++          case LSP.Cancel_Execution(id) => cancel_execution(id)
            case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
          }
        }
