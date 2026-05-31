@@ -39,6 +39,9 @@ via any LSP message.
       "node_name": "/path/to/A.thy",
       "theory_name": "Test.A",
       "external": false,
+      "imports": [
+        {"node_name": "/path/to/B.thy", "theory_name": "Test.B"}
+      ],
       "ok": true,
       "total": 8,
       "unprocessed": 0,
@@ -54,6 +57,9 @@ via any LSP message.
       "node_name": "/path/to/B.thy",
       "theory_name": "Test.B",
       "external": true,
+      "imports": [
+        {"node_name": "~~/src/HOL/Main.thy", "theory_name": "HOL.Main"}
+      ],
       "ok": true,
       "total": 10,
       "unprocessed": 0,
@@ -76,6 +82,7 @@ via any LSP message.
 | `node_name` | `model.node_name.node` | File path |
 | `theory_name` | `model.node_name.theory` | Qualified theory name (e.g. `Test.B`) |
 | `external` | `model.external_file` | `true` = auto-loaded dependency, `false` = explicitly opened |
+| `imports` | `snapshot.node.header.imports` | List of imported theories (each with `node_name` + `theory_name`) |
 | `ok` | `Node_Status.ok` | `failed == 0` |
 | `total` | `Node_Status.total` | `unprocessed + running + warned + failed + finished` |
 | `unprocessed` | `Node_Status` | Commands not yet started |

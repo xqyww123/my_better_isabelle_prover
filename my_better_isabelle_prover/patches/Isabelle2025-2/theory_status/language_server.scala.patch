@@ -1,6 +1,6 @@
---- a/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:01:41.188438530 +0800
-+++ b/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:02:16.646062321 +0800
-@@ -513,6 +513,26 @@
+--- a/src/Tools/VSCode/src/language_server.scala	2026-05-25 22:23:05.734267494 +0800
++++ b/src/Tools/VSCode/src/language_server.scala	2026-05-25 23:55:50.451489354 +0800
+@@ -513,6 +513,28 @@
      channel.write(LSP.Documentation_Response(ml_settings))
  
  
@@ -17,7 +17,9 @@
 +          version = snapshot.version,
 +          name = model.node_name)
 +        model.node_name.json ++
-+          JSON.Object("external" -> model.external_file) ++
++          JSON.Object(
++            "external" -> model.external_file,
++            "imports" -> snapshot.node.header.imports.map(_.json)) ++
 +          status.json
 +      }).toList
 +    channel.write(LSP.Theory_Status.reply(id, theories))
@@ -27,7 +29,7 @@
    /* main loop */
  
    def start(): Unit = {
-@@ -559,6 +579,7 @@
+@@ -559,6 +581,7 @@
            case LSP.Sledgehammer_Cancel() => sledgehammer.cancel()
            case LSP.Sledgehammer_Locate() => sledgehammer.locate()
            case LSP.Sledgehammer_Sendback(text) => sledgehammer.sendback(text)

@@ -1,0 +1,22 @@
+--- a/src/Tools/VSCode/src/language_server.scala	2026-05-26 15:23:27.417244816 +0800
++++ b/src/Tools/VSCode/src/language_server.scala	2026-05-26 15:27:22.849859869 +0800
+@@ -534,6 +534,11 @@
+     channel.write(LSP.Theory_Status.reply(id, theories))
+   }
+ 
++  def cancel_execution(id: LSP.Id): Unit = {
++    session.protocol_command("Document.cancel_execution")
++    channel.write(LSP.Cancel_Execution.reply(id))
++  }
++
+ 
+   /* main loop */
+ 
+@@ -582,6 +587,7 @@
+           case LSP.Sledgehammer_Locate() => sledgehammer.locate()
+           case LSP.Sledgehammer_Sendback(text) => sledgehammer.sendback(text)
+           case LSP.Theory_Status(id) => theory_status(id)
++          case LSP.Cancel_Execution(id) => cancel_execution(id)
+           case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
+         }
+       }

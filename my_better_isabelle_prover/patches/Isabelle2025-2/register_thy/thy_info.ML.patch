@@ -1,0 +1,33 @@
+--- a/src/Pure/Thy/thy_info.ML
++++ b/src/Pure/Thy/thy_info.ML
+@@ -25,6 +25,7 @@
+   val use_theories: Options.T -> string -> (string * Position.T) list ->
+     (theory * Document_Output.segment list) list
+   val use_thy_legacy: string -> unit
++  val register_thy: theory -> unit
+   val finish: unit -> unit
+ end;
+ 
+@@ -467,6 +468,22 @@
+     ignore (use_theories (Options.default ()) Resources.default_qualifier [(name, Position.none)]));
+ 
+ 
++(* register theory *)
++
++fun register_thy theory =
++  let
++    val name = Context.theory_long_name theory;
++    val {master, ...} = Resources.check_thy (Resources.master_directory theory) name;
++    val imports = Resources.imports_of theory;
++  in
++    change_thys (fn thys =>
++      let
++        val thys' = remove name thys;
++        val _ = writeln ("Registering theory " ^ quote name);
++      in update (make_deps master imports) (theory, []) thys' end)
++  end;
++
++
+ (* finish all theories *)
+ 
+ fun finish () = change_thys (String_Graph.map (fn _ => fn (_, entry) => (NONE, entry)));

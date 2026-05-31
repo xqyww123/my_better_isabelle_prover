@@ -1,0 +1,12 @@
+--- a/src/Pure/PIDE/protocol.scala	2026-05-26 15:23:27.415022428 +0800
++++ b/src/Pure/PIDE/protocol.scala	2026-05-26 15:24:30.620555397 +0800
+@@ -409,6 +409,9 @@
+   def discontinue_execution(): Unit =
+     protocol_command("Document.discontinue_execution")
+ 
++  def cancel_execution(): Unit =
++    protocol_command("Document.cancel_execution")
++
+   def cancel_exec(id: Document_ID.Exec): Unit =
+     protocol_command("Document.cancel_exec", Document_ID.encode(id))
+ 
