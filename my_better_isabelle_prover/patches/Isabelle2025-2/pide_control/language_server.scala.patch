@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/language_server.scala
 +++ b/src/Tools/VSCode/src/language_server.scala
-@@ -513,6 +513,33 @@
+@@ -513,6 +513,52 @@
      channel.write(LSP.Documentation_Response(ml_settings))
  
  
@@ -30,16 +30,36 @@
 +    channel.write(LSP.Cancel_Execution.reply(id))
 +  }
 +
++  def command_at_position(id: LSP.Id, node_pos: Line.Node_Position): Unit = {
++    val result =
++      rendering_offset(node_pos) match {
++        case Some((rendering, offset)) =>
++          val it = rendering.snapshot.node.command_iterator(offset)
++          if (it.hasNext) {
++            val (command, start) = it.next()
++            if (command.is_ignored) None
++            else {
++              val text_range = Text.Range(start, start + command.length)
++              Some((command.source, rendering.model.content.doc.range(text_range)))
++            }
++          }
++          else None
++        case None => None
++      }
++    channel.write(LSP.Command_At_Position.reply(id, result))
++  }
++
 +
    /* main loop */
  
    def start(): Unit = {
-@@ -559,6 +586,8 @@
+@@ -559,6 +605,9 @@
            case LSP.Sledgehammer_Cancel() => sledgehammer.cancel()
            case LSP.Sledgehammer_Locate() => sledgehammer.locate()
            case LSP.Sledgehammer_Sendback(text) => sledgehammer.sendback(text)
 +          case LSP.Theory_Status(id) => theory_status(id)
 +          case LSP.Cancel_Execution(id) => cancel_execution(id)
++          case LSP.Command_At_Position(id, node_pos) => command_at_position(id, node_pos)
            case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
          }
        }

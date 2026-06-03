@@ -1,11 +1,13 @@
 # Feature: `pide_control` — PIDE LSP Control Extensions
 
-Bundles two related PIDE LSP requests that Isabelle's stock `vscode_server` does
+Bundles three related PIDE LSP requests that Isabelle's stock `vscode_server` does
 not expose:
 
 - **`PIDE/theory_status`** — query per-theory processing status (including
   auto-loaded dependencies).
 - **`PIDE/cancel_execution`** — globally cancel all running processing.
+- **`PIDE/command_at_position`** — return the full source text and range of the
+  Isar command enclosing a given position.
 
 ## Why one feature
 
@@ -28,12 +30,12 @@ patches/<version>/pide_control/
 ├── execution.ML.patch        # ML: Execution.cancel_execution()
 ├── protocol.ML.patch         # ML: Document.cancel_execution protocol command
 ├── protocol.scala.patch      # Scala: protocol command plumbing
-├── lsp.scala.patch           # Scala: LSP.Theory_Status + LSP.Cancel_Execution objects
+├── lsp.scala.patch           # Scala: LSP.Theory_Status + LSP.Cancel_Execution + LSP.Command_At_Position objects
 └── language_server.scala.patch  # Scala: handler methods + main-loop dispatch cases
 ```
 
 `lsp.scala.patch` and `language_server.scala.patch` are combined diffs containing
-both requests' insertions; the other three come from the cancellation side only.
+all three requests' insertions; the other three come from the cancellation side only.
 All five target distinct files, so there is no intra-feature ordering concern.
 
 Apply from the Isabelle root:
@@ -113,6 +115,44 @@ all future groups from the `execs` table, (3) interrupts each via
 (e.g. `OS.Process.sleep`) run to completion. Client should poll
 `PIDE/theory_status` until `running == 0`. Recovery is automatic: the next edit
 triggers `Document.update` → fresh `execution_id`.
+
+## `PIDE/command_at_position`
+
+### Problem
+`vscode_server` exposes proof state (state panel) and output (dynamic output)
+tied to a caret, but never the **command** itself. An LSP client has no way to
+recover the full source text or range of the Isar command enclosing a position —
+the protocol only emits per-element decoration ranges (and only for
+running/unprocessed commands), and `Isabelle_RPC_Host` has no outer-syntax
+command splitter. The enclosing command is the natural unit for reporting proof
+state (state is per-command, not per-character).
+
+### Solution / Protocol
+A `RequestTextDocumentPosition` request that resolves the command at an explicit
+position — no caret move, so it composes with any other query and is reusable by
+multiple tools (e.g. goal state and command output). Implementation:
+`rendering_offset(node_pos)` → `(rendering, offset)`, then
+`snapshot.node.command_iterator(offset).next()` gives `(command, start)`; the
+reply carries `command.source` and `Text.Range(start, start + command.length)`
+converted to line/character via `model.content.doc.range`.
+
+**Request:** `PIDE/command_at_position` with the standard text-document-position
+params:
+```json
+{ "textDocument": { "uri": "file:///path/A.thy" },
+  "position": { "line": 8, "character": 4 } }
+```
+**Response** (`source`/`range` present when a non-ignored command is found,
+omitted otherwise):
+```json
+{
+  "source": "apply (rule someThm\n  [where x = y])",
+  "range": { "start": {"line": 8, "character": 2},
+             "end":   {"line": 9, "character": 16} }
+}
+```
+Line/character are 0-indexed LSP coordinates. The range spans the whole command,
+including any trailing whitespace that belongs to its span.
 
 ## Test results
 

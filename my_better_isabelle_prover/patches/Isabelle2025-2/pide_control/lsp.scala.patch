@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/lsp.scala
 +++ b/src/Tools/VSCode/src/lsp.scala
-@@ -667,6 +667,16 @@
+@@ -667,6 +667,28 @@
        }
    }
  
@@ -12,6 +12,18 @@
 +  object Cancel_Execution extends Request0("PIDE/cancel_execution") {
 +    def reply(id: Id): JSON.T =
 +      ResponseMessage(id, Some(JSON.Object("cancelled" -> true)))
++  }
++
++  object Command_At_Position extends RequestTextDocumentPosition("PIDE/command_at_position") {
++    def reply(id: Id, result: Option[(String, Line.Range)]): JSON.T = {
++      val res =
++        result match {
++          case Some((source, range)) =>
++            JSON.Object("source" -> source, "range" -> Range(range))
++          case None => JSON.Object()
++        }
++      ResponseMessage(id, Some(res))
++    }
 +  }
 +
  
