@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/lsp.scala
 +++ b/src/Tools/VSCode/src/lsp.scala
-@@ -667,6 +667,28 @@
+@@ -667,6 +667,40 @@
        }
    }
  
@@ -20,6 +20,18 @@
 +        result match {
 +          case Some((source, range)) =>
 +            JSON.Object("source" -> source, "range" -> Range(range))
++          case None => JSON.Object()
++        }
++      ResponseMessage(id, Some(res))
++    }
++  }
++
++  object Output_At_Position extends RequestTextDocumentPosition("PIDE/output_at_position") {
++    def reply(id: Id, result: Option[(String, Line.Range, String)]): JSON.T = {
++      val res =
++        result match {
++          case Some((source, range, content)) =>
++            JSON.Object("source" -> source, "range" -> Range(range), "content" -> content)
 +          case None => JSON.Object()
 +        }
 +      ResponseMessage(id, Some(res))

@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/language_server.scala
 +++ b/src/Tools/VSCode/src/language_server.scala
-@@ -424,6 +424,50 @@
+@@ -424,6 +424,85 @@
    }
  
  
@@ -38,7 +38,7 @@
 +            if (command.is_ignored) None
 +            else {
 +              val text_range = Text.Range(start, start + command.length)
-+              Some((command.source, rendering.model.content.doc.range(text_range)))
++              Some((Symbol.decode(command.source), rendering.model.content.doc.range(text_range)))
 +            }
 +          }
 +          else None
@@ -47,17 +47,53 @@
 +    channel.write(LSP.Command_At_Position.reply(id, result))
 +  }
 +
++  def output_at_position(id: LSP.Id, node_pos: Line.Node_Position): Unit = {
++    val result =
++      rendering_offset(node_pos) match {
++        case Some((rendering, offset)) =>
++          val snapshot = rendering.snapshot
++          val it = snapshot.node.command_iterator(offset)
++          if (it.hasNext) {
++            val (command, start) = it.next()
++            if (command.is_ignored) None
++            else {
++              val text_range = Text.Range(start, start + command.length)
++              val range = rendering.model.content.doc.range(text_range)
++              val output_state = resources.options.bool("editor_output_state")
++              val output = Rendering.output_messages(snapshot.command_results(command), output_state)
++              val node_context =
++                new Browser_Info.Node_Context {
++                  override def make_ref(props: Properties.T, body: XML.Body): Option[XML.Elem] =
++                    for {
++                      thy_file <- Position.Def_File.unapply(props)
++                      def_line <- Position.Def_Line.unapply(props)
++                      source <- resources.source_file(thy_file)
++                      uri = File.uri(Path.explode(source).absolute_file)
++                    } yield HTML.link(uri.toString + "#" + def_line, body)
++                }
++              val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
++              val html = node_context.make_html(elements, Pretty.separate(output))
++              Some((Symbol.decode(command.source), range, HTML.source(html).toString))
++            }
++          }
++          else None
++        case None => None
++      }
++    channel.write(LSP.Output_At_Position.reply(id, result))
++  }
++
 +
    /* main loop */
  
    def start(): Unit = {
-@@ -458,6 +502,9 @@
+@@ -458,6 +537,10 @@
            case LSP.State_Update(id) => State_Panel.update(id)
            case LSP.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
            case LSP.Preview_Request(file, column) => request_preview(file, column)
 +          case LSP.Theory_Status(id) => theory_status(id)
 +          case LSP.Cancel_Execution(id) => cancel_execution(id)
 +          case LSP.Command_At_Position(id, node_pos) => command_at_position(id, node_pos)
++          case LSP.Output_At_Position(id, node_pos) => output_at_position(id, node_pos)
            case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
          }
        }
