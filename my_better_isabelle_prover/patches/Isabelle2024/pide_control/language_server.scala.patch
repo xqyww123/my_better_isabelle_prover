@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/language_server.scala
 +++ b/src/Tools/VSCode/src/language_server.scala
-@@ -424,6 +424,85 @@
+@@ -424,6 +424,90 @@
    }
  
  
@@ -82,11 +82,16 @@
 +    channel.write(LSP.Output_At_Position.reply(id, result))
 +  }
 +
++  def symbols(id: LSP.Id): Unit = {
++    val content = Symbol.Symbols.files().map(File.read).mkString("\n")
++    channel.write(LSP.Symbols.reply(id, content))
++  }
++
 +
    /* main loop */
  
    def start(): Unit = {
-@@ -458,6 +537,10 @@
+@@ -458,6 +542,11 @@
            case LSP.State_Update(id) => State_Panel.update(id)
            case LSP.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
            case LSP.Preview_Request(file, column) => request_preview(file, column)
@@ -94,6 +99,7 @@
 +          case LSP.Cancel_Execution(id) => cancel_execution(id)
 +          case LSP.Command_At_Position(id, node_pos) => command_at_position(id, node_pos)
 +          case LSP.Output_At_Position(id, node_pos) => output_at_position(id, node_pos)
++          case LSP.Symbols(id) => symbols(id)
            case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
          }
        }

@@ -1,6 +1,6 @@
 --- a/src/Tools/VSCode/src/lsp.scala
 +++ b/src/Tools/VSCode/src/lsp.scala
-@@ -667,6 +667,40 @@
+@@ -667,6 +667,45 @@
        }
    }
  
@@ -36,6 +36,11 @@
 +        }
 +      ResponseMessage(id, Some(res))
 +    }
++  }
++
++  object Symbols extends Request0("PIDE/symbols") {
++    def reply(id: Id, content: String): JSON.T =
++      ResponseMessage(id, Some(JSON.Object("content" -> content)))
 +  }
 +
  
