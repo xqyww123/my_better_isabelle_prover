@@ -1,4 +1,4 @@
-# AGENT.md
+# AGENTS.md
 
 Orientation for an AI agent operating in this package. For human-facing detail
 see [README.md](README.md), [reference.md](reference.md), and [develop.md](develop.md).
