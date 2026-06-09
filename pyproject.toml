@@ -6,10 +6,22 @@ build-backend = "setuptools.build_meta"
 name = "my-better-isabelle-prover"
 version = "0.1.0"
 description = "Patch manager for Isabelle installations"
+readme = "README.md"
 requires-python = ">=3.12"
 license = "LGPL-2.1-or-later"
 authors = [
     { name = "Qiyuan Xu", email = "xu@qiyuan.me" },
+]
+keywords = ["isabelle", "patch", "pide", "lsp", "theorem-proving"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
 ]
 dependencies = []
 

@@ -10,6 +10,8 @@ not expose:
   Isar command enclosing a given position.
 - **`PIDE/output_at_position`** — return the source text, range, AND rendered
   prover output of the Isar command enclosing a given position, in one request.
+- **`PIDE/symbols`** — dump the `etc/symbols` translation table(s) so a client
+  can decode/encode Isabelle symbol notation (e.g. `\<forall>` ↔ ∀).
 
 ## Why one feature
 
@@ -32,7 +34,7 @@ patches/<version>/pide_control/
 ├── execution.ML.patch        # ML: Execution.cancel_execution()
 ├── protocol.ML.patch         # ML: Document.cancel_execution protocol command
 ├── protocol.scala.patch      # Scala: protocol command plumbing
-├── lsp.scala.patch           # Scala: LSP.Theory_Status + Cancel_Execution + Command_At_Position [+ Output_At_Position] objects
+├── lsp.scala.patch           # Scala: LSP.Theory_Status + Cancel_Execution + Command_At_Position + Output_At_Position + Symbols objects
 └── language_server.scala.patch  # Scala: handler methods + main-loop dispatch cases
 ```
 
@@ -209,6 +211,31 @@ found, omitted otherwise):
 `content` is the Output-panel HTML; the client parses its CSS classes
 (`writeln_message`, `warning`, `error`, `information`/`state_message`,
 `tracing_message`, …) into typed messages.
+
+## `PIDE/symbols`
+
+### Problem
+Isabelle source uses symbol notation like `\<forall>`, `\<Longrightarrow>`,
+`\<^sub>`. A client that wants to render or accept Unicode (∀, ⟹, subscripts)
+needs the name↔code mapping that lives in Isabelle's `etc/symbols` files. The
+stock `vscode_server` never exposes this table, and re-deriving it client-side
+duplicates a file the running prover already has authoritative.
+
+### Solution / Protocol
+A parameterless (`Request0`) request that reads every `etc/symbols` file the
+prover knows about (`Symbol.Symbols.files()`) and returns their concatenated raw
+text. The client parses the standard `etc/symbols` format itself (one symbol per
+line: `\<name>   code: 0x…   group: …   abbrev: …`).
+
+**Request:** `PIDE/symbols` (no params).
+**Response:**
+```json
+{ "content": "\\<forall>   code: 0x002200   group: logic   abbrev: ALL\n\\<exists>   code: 0x002203   group: logic   abbrev: EX\n..." }
+```
+`content` is the verbatim concatenation of the symbol tables (joined by
+newlines), exactly as Isabelle ships them — including comments and group/abbrev
+columns. Reading it once at session start is enough; the table does not change
+during a session.
 
 ## Test results
 
