@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Patch manager for Isabelle installations"
 readme = "README.md"
 requires-python = ">=3.12"
-license = "LGPL-2.1-or-later"
+license = "MIT"
 authors = [
     { name = "Qiyuan Xu", email = "xu@qiyuan.me" },
 ]
@@ -17,13 +17,18 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/xqyww123/my_better_isabelle_prover"
+Repository = "https://github.com/xqyww123/my_better_isabelle_prover"
+Issues = "https://github.com/xqyww123/my_better_isabelle_prover/issues"
 
 [project.scripts]
 my-better-isabelle = "my_better_isabelle_prover.cli:main"
