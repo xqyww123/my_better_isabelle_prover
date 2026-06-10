@@ -9,13 +9,15 @@ It exists primarily to support
 server that drives Isabelle over its LSP interface for AI agents. That server
 needs PIDE/LSP requests the stock `vscode_server` does not expose, and the
 [`Isa-REPL`](https://github.com/xqyww123/Isa-REPL) it builds on needs an ML
-loader function that Isabelle2025-2 removed.
-Neither can be added without editing *vendored* Isabelle source — the Pure ML
-loader and the `vscode_server` Scala. This tool keeps those edits as
+loader function that Isabelle2025-2 removed. This tool keeps the edits that add
+them as
 version-keyed unified diffs and applies, reverses, and checks them idempotently,
 then rebuilds the affected Scala when needed.
 
 > [!IMPORTANT]
+> **Isabelle-MCP and Isa-REPL require this patch** — run `my-better-isabelle
+> patch` against your Isabelle before using them.
+>
 > Before using this tool, make sure the `isabelle` command is available — on
 > your `PATH`, or passed explicitly via `--isabelle-bin PATH`. Every command
 > needs it (to detect the version and locate `ISABELLE_HOME`) and aborts with an

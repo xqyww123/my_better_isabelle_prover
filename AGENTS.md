@@ -12,12 +12,6 @@ Pure ML loader and the `vscode_server` Scala) as version-keyed unified diffs, an
 applies, reverses, and checks them idempotently — then rebuilds the affected
 Scala.
 
-It exists primarily to support
-[**Isabelle-MCP**](https://github.com/xqyww123/Isabelle-MCP) (Isa-LSP), an MCP
-server that drives Isabelle over its LSP interface for AI agents. That server,
-and the [`Isa-REPL`](https://github.com/xqyww123/Isa-REPL) it builds on, need
-functionality that can only be added by editing Isabelle's own source.
-
 Two features ship today:
 - **`pide_control`** (Isabelle2024, Isabelle2025-2) — adds LSP requests the stock
   `vscode_server` does not expose: `PIDE/theory_status`, `PIDE/cancel_execution`,

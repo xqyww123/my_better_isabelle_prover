@@ -20,6 +20,21 @@ The detected version (the exact `isabelle version` string, e.g. `Isabelle2024`)
 selects which patch set under `patches/<version>/` applies. If no patches exist
 for that version the command stops with an explanatory message.
 
+## Features
+
+A *feature* is a named bundle of patches, applied, reversed, and queried as a
+unit (`--feature NAME`). Which features exist depends on the detected Isabelle
+version.
+
+| Feature | Versions | Needed by | What it adds |
+|---------|----------|-----------|--------------|
+| `pide_control` | Isabelle2024, Isabelle2025-2 | Isabelle-MCP | PIDE/LSP control requests the stock `vscode_server` does not expose (`theory_status`, `cancel_execution`, `command_at_position`, `output_at_position`, `symbols`). Edits Scala, so it triggers a `scala_build`. |
+| `register_thy` | Isabelle2025-2 only | Isa-REPL | Restores `Thy_Info.register_thy`, removed by the 2025-2 loader refactoring (native in Isabelle2024, so no patch is needed there). Pure ML, so no `scala_build`. |
+
+Isabelle-MCP relies on `pide_control` on both supported versions; Isa-REPL
+relies on `register_thy`, and only on Isabelle2025-2. Apply the relevant patch
+before using either component.
+
 ## Global options
 
 | Option | Description |
@@ -92,6 +107,16 @@ edit, or after `patch --no-build`.
 
 ```bash
 my-better-isabelle build
+```
+
+### `help` — print the agent/usage guide
+
+Prints the bundled `AGENTS.md` (agent-oriented orientation: what the tool is,
+prerequisites, usage, and behaviour) to stdout. Needs no Isabelle and touches
+nothing.
+
+```bash
+my-better-isabelle help
 ```
 
 ## Exit codes

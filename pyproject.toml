@@ -37,4 +37,4 @@ my-better-isabelle = "my_better_isabelle_prover.cli:main"
 include = ["my_better_isabelle_prover", "my_better_isabelle_prover.*"]
 
 [tool.setuptools.package-data]
-my_better_isabelle_prover = ["patches/**/*.patch"]
+my_better_isabelle_prover = ["patches/**/*.patch", "AGENTS.md"]

@@ -3,6 +3,7 @@
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 from my_better_isabelle_prover import isabelle, patcher
 from my_better_isabelle_prover.patches import available_features, available_versions, discover_patches
@@ -77,6 +78,12 @@ def cmd_build(args) -> None:
         sys.exit(2)
 
 
+def cmd_help(args) -> None:
+    """Print the bundled agent/usage guide (AGENTS.md)."""
+    guide = Path(__file__).parent / "AGENTS.md"
+    print(guide.read_text(encoding="utf-8"), end="")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="my-better-isabelle",
@@ -109,6 +116,8 @@ def main() -> None:
 
     subs.add_parser("build", help="Run isabelle scala_build -f")
 
+    subs.add_parser("help", help="Print the agent/usage guide (AGENTS.md)")
+
     args = parser.parse_args()
 
     level = logging.DEBUG if args.verbose else logging.WARNING if args.quiet else logging.INFO
@@ -119,5 +128,6 @@ def main() -> None:
         "unpatch": cmd_unpatch,
         "status": cmd_status,
         "build": cmd_build,
+        "help": cmd_help,
     }
     dispatch[args.command](args)
