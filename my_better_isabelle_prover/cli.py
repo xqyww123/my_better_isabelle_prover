@@ -67,8 +67,8 @@ def cmd_unpatch(args) -> None:
 def cmd_status(args) -> None:
     _isa_bin, version, home, patches = _resolve(args)
     print(f"Patch status for {version}:")
-    all_clean = patcher.print_status(home, patches)
-    if not all_clean:
+    all_applied = patcher.print_status(home, patches)
+    if not all_applied:
         sys.exit(1)
 
 

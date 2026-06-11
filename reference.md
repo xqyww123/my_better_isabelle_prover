@@ -90,7 +90,8 @@ my-better-isabelle unpatch --feature pide_control --dry-run
 
 Prints, per patch, one of `applied` / `not-applied` / `CONFLICT` and the target
 file. `CONFLICT` means the target has modifications that are incompatible with
-the patch (the patch neither applies forward nor reverses cleanly).
+the patch (the patch neither applies forward nor reverses cleanly). Exits `0`
+only when every patch reports `applied`, so scripts can gate on the exit code.
 
 | Option | Description |
 |--------|-------------|
@@ -124,5 +125,5 @@ my-better-isabelle help
 | Code | Meaning |
 |------|---------|
 | `0` | Success (also: no patches found for the version — nothing to do). |
-| `1` | Setup error (no `isabelle`/`patch`, unknown version or feature, bad `ISABELLE_HOME`), a patch conflict/failure, or `status` found a `CONFLICT`. |
+| `1` | Setup error (no `isabelle`/`patch`, unknown version or feature, bad `ISABELLE_HOME`), a patch conflict/failure, or `status` found a patch `not-applied` or in `CONFLICT`. |
 | `2` | Patching succeeded but the subsequent `isabelle scala_build` failed. |

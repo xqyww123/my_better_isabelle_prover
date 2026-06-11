@@ -73,8 +73,8 @@ Useful flags (full list in [reference.md](reference.md)):
 - **Read-only safe.** Distribution files are made writable for the apply and
   restored afterward.
 - **Exit codes.** `0` success (or nothing to do); `1` setup error / patch
-  conflict / `status` found a conflict; `2` patching succeeded but
-  `scala_build` failed. Check these rather than parsing stdout.
+  conflict / `status` found a patch not applied or in conflict; `2` patching
+  succeeded but `scala_build` failed. Check these rather than parsing stdout.
 
 ## When changing patches
 

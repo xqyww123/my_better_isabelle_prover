@@ -129,7 +129,7 @@ def apply_all(
 
 
 def print_status(isabelle_home: Path, patches: list[PatchInfo]) -> bool:
-    all_clean = True
+    all_applied = True
     for patch in patches:
         status = check_status(isabelle_home, patch)
         marker = {
@@ -137,8 +137,8 @@ def print_status(isabelle_home: Path, patches: list[PatchInfo]) -> bool:
             PatchStatus.NOT_APPLIED: "not-applied",
             PatchStatus.CONFLICT: "CONFLICT",
         }[status]
-        if status == PatchStatus.CONFLICT:
-            all_clean = False
+        if status != PatchStatus.APPLIED:
+            all_applied = False
         target = patch.target_relative
         print(f"  [{marker:>11s}]  {patch.feature}/{patch.patch_path.name}  ({target})")
-    return all_clean
+    return all_applied
