@@ -1,0 +1,11 @@
+--- a/src/Tools/VSCode/src/vscode_model.scala
++++ b/src/Tools/VSCode/src/vscode_model.scala
+@@ -113,7 +113,7 @@
+           caret match {
+             case Some(pos) =>
+               val doc = content.doc
+-              val pos1 = Line.Position((pos.line - caret_perspective) max 0)
++              val pos1 = Line.Position((pos.line - caret_perspective) max 0 min doc.lines.length)
+               val pos2 = Line.Position((pos.line + caret_perspective + 1) min doc.lines.length)
+               Text.Range(doc.offset(pos1).get, doc.offset(pos2).get)
+             case None => Text.Range.offside
