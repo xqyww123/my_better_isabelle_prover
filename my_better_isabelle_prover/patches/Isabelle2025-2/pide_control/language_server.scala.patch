@@ -1,6 +1,30 @@
 --- a/src/Tools/VSCode/src/language_server.scala
 +++ b/src/Tools/VSCode/src/language_server.scala
-@@ -513,6 +513,98 @@
+@@ -173,6 +173,7 @@
+   def ml_settings: ML_Settings = session.store.ml_settings
+ 
+   private val sledgehammer = new VSCode_Sledgehammer(server)
++  private val find_theorems = new VSCode_Find_Theorems(server)
+ 
+   def rendering_offset(node_pos: Line.Node_Position): Option[(VSCode_Rendering, Text.Offset)] =
+     for {
+@@ -343,6 +344,7 @@
+ 
+       dynamic_output.init()
+       sledgehammer.init()
++      find_theorems.init()
+ 
+       try {
+         Isabelle_Process.start(
+@@ -372,6 +374,7 @@
+         delay_caret_update.revoke()
+         delay_preview.revoke()
+         sledgehammer.exit()
++        find_theorems.exit()
+ 
+         val result = session.stop()
+         if (result.ok) reply("")
+@@ -513,6 +516,117 @@
      channel.write(LSP.Documentation_Response(ml_settings))
  
  
@@ -90,6 +114,25 @@
 +    channel.write(LSP.Output_At_Position.reply(id, result))
 +  }
 +
++  // Render query-operation output (e.g. find_theorems) to browser HTML, the same
++  // way output_at_position renders a command's results, so the client can reuse the
++  // same HTML parsing. Lives here (not in VSCode_Find_Theorems) for access to
++  // `session`/`store`.
++  def render_query_html(messages: XML.Body): String = {
++    val node_context =
++      new Browser_Info.Node_Context {
++        override def make_ref(props: Properties.T, body: XML.Body): Option[XML.Elem] =
++          for {
++            thy_file <- Position.Def_File.unapply(props)
++            def_line <- Position.Def_Line.unapply(props)
++            platform_path <- session.store.source_file(thy_file)
++            uri = File.uri(Path.explode(File.standard_path(platform_path)).absolute_file)
++          } yield HTML.link(uri.toString + "#" + def_line, body)
++      }
++    val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
++    HTML.source(node_context.make_html(elements, Pretty.separate(messages))).toString
++  }
++
 +  def symbols(id: LSP.Id): Unit = {
 +    val content = Symbol.Symbols.files().map(File.read).mkString("\n")
 +    channel.write(LSP.Symbols.reply(id, content))
@@ -99,7 +142,7 @@
    /* main loop */
  
    def start(): Unit = {
-@@ -559,6 +651,11 @@
+@@ -559,6 +673,13 @@
            case LSP.Sledgehammer_Cancel() => sledgehammer.cancel()
            case LSP.Sledgehammer_Locate() => sledgehammer.locate()
            case LSP.Sledgehammer_Sendback(text) => sledgehammer.sendback(text)
@@ -108,6 +151,49 @@
 +          case LSP.Command_At_Position(id, node_pos) => command_at_position(id, node_pos)
 +          case LSP.Output_At_Position(id, node_pos) => output_at_position(id, node_pos)
 +          case LSP.Symbols(id) => symbols(id)
++          case LSP.Find_Theorems_Request(token, args) => find_theorems.request(token, args)
++          case LSP.Find_Theorems_Cancel(token) => find_theorems.cancel(token)
            case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
          }
        }
+@@ -579,3 +700,40 @@
+     loop()
+   }
+ }
++
++
++class VSCode_Find_Theorems(server: Language_Server) {
++  private val query_operation =
++    new Query_Operation(server.editor, (), "find_theorems", consume_status, consume_output)
++
++  // The token of the in-flight query, echoed back in every status/output notification
++  // so the client can drop stragglers from a superseded query. Only ever read/written
++  // on the editor dispatcher thread (request, and the Query_Operation callbacks), so a
++  // plain var is safe.
++  private var current_token: String = ""
++
++  private def consume_status(status: Query_Operation.Status): Unit =
++    server.channel.write(LSP.Find_Theorems_Status(current_token, status.toString))
++
++  private def consume_output(output: Editor.Output): Unit = {
++    // apply_query emits an empty init output before the command match; send it as ""
++    // so the client's "non-empty ⇒ real result" filter treats a no-command query as
++    // producing no output. A genuine "found nothing" result has non-empty messages.
++    val content =
++      if (output.messages.isEmpty) "" else server.render_query_html(output.messages)
++    server.channel.write(LSP.Find_Theorems_Output(current_token, content))
++  }
++
++  def request(token: String, args: List[String]): Unit =
++    server.editor.send_dispatcher { current_token = token; query_operation.apply_query(args) }
++
++  // Token-guarded: ignore a cancel for a query that has already been superseded, so a
++  // late cancel from a finished query cannot tear down the next one.
++  def cancel(token: String): Unit =
++    server.editor.send_dispatcher {
++      if (token == current_token) query_operation.cancel_query()
++    }
++
++  def init(): Unit = query_operation.activate()
++  def exit(): Unit = query_operation.deactivate()
++}
