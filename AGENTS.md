@@ -12,13 +12,18 @@ Pure ML loader and the `vscode_server` Scala) as version-keyed unified diffs, an
 applies, reverses, and checks them idempotently — then rebuilds the affected
 Scala.
 
-Two features ship today:
+Features shipping today:
 - **`pide_control`** (Isabelle2024, Isabelle2025-2) — adds LSP requests the stock
   `vscode_server` does not expose: `PIDE/theory_status`, `PIDE/cancel_execution`,
   `PIDE/command_at_position`, `PIDE/output_at_position`, `PIDE/symbols`. Edits
   Scala → needs a rebuild.
 - **`register_thy`** (Isabelle2025-2 only) — restores `Thy_Info.register_thy`,
   removed by the 2025-2 loader refactoring. Pure ML → no rebuild.
+- **`show_types_nv`** (Isabelle2024, Isabelle2025-2) — custom `show_types_nv`
+  printing option that suppresses type annotations on free/fixed variables only.
+  Pure ML + `etc/options` → no scala rebuild (takes effect on Pure heap rebuild).
+- **`perspective_eof_clamp`** (Isabelle2024, Isabelle2025-2) — clamps the caret
+  perspective window's lower bound to EOF. Edits Scala → needs a rebuild.
 
 It is a thin, dependency-free wrapper around the system `patch` tool. There is no
 per-patch config; everything is driven from the `.patch` files on disk.
@@ -54,7 +59,8 @@ my-better-isabelle build
 
 Useful flags (full list in [reference.md](reference.md)):
 - `--isabelle-bin PATH` — target a specific Isabelle when several are installed.
-- `--feature NAME` — limit to one feature (`pide_control` or `register_thy`).
+- `--feature NAME` — limit to one feature (e.g. `pide_control`, `register_thy`,
+  `show_types_nv`, `perspective_eof_clamp`; see `status` for the full list).
 - `--dry-run` — check without modifying any file. **Prefer this first** when
   unsure.
 - `--no-build` — skip `isabelle scala_build`; correct for pure-ML patches like

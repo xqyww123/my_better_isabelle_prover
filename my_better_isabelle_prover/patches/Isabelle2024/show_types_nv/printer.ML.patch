@@ -1,0 +1,18 @@
+--- a/src/Pure/Syntax/printer.ML
++++ b/src/Pure/Syntax/printer.ML
+@@ -8,6 +8,7 @@
+ sig
+   val show_brackets: bool Config.T
+   val show_types: bool Config.T
++  val show_types_nv: bool Config.T
+   val show_sorts: bool Config.T
+   val show_markup: bool Config.T
+   val show_structs: bool Config.T
+@@ -48,6 +49,7 @@
+ 
+ val show_brackets = Config.declare_option_bool ("show_brackets", \<^here>);
+ val show_types = Config.declare_option_bool ("show_types", \<^here>);
++val show_types_nv = Config.declare_option_bool ("show_types_nv", \<^here>);
+ val show_sorts = Config.declare_option_bool ("show_sorts", \<^here>);
+ val show_markup_default = Unsynchronized.ref false;
+ val show_markup = Config.declare_bool ("show_markup", \<^here>) (fn _ => ! show_markup_default);

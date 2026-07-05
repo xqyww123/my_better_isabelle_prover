@@ -44,6 +44,8 @@ version. Run `my-better-isabelle status` to see which are applied.
 |---------|:---:|:---:|--------------|
 | [`pide_control`](my_better_isabelle_prover/patches/pide_control.md) | ✓ | ✓ | PIDE LSP control requests the stock `vscode_server` does not expose |
 | [`register_thy`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md) | native | ✓ | Restores `Thy_Info.register_thy`, removed in 2025-2 |
+| [`show_types_nv`](my_better_isabelle_prover/patches/show_types_nv.md) | ✓ | ✓ | Custom `show_types_nv` option: suppress type annotations on free/fixed variables only |
+| `perspective_eof_clamp` | ✓ | ✓ | Clamp the caret-perspective window's lower bound to EOF (avoids an out-of-range `Text.Range` past the last line) |
 
 ### `pide_control` — PIDE LSP control extensions
 
@@ -82,6 +84,12 @@ Patch targets are keyed by the exact output of `isabelle version`
   reverse-detects cleanly, but the Pure/HOL heap has **not** yet been rebuilt
   with it. Verify before relying on either; see each feature doc for the exact
   scope tested.
+- **`show_types_nv`** — recorded for Isabelle2024 (reverse-recorded from the
+  existing hand edit) and ported to Isabelle2025-2. On 2025-2 it is applied, the
+  Pure heap has been rebuilt, and it is runtime-verified (free-variable type
+  annotation suppressed). The end-to-end consumer path
+  (`Isa-Mini/.../print_formats.ML`, `show_markup=false`, HOL terms) is pending
+  the HOL/Isa-Mini rebuild.
 
 ## Documentation
 
@@ -91,4 +99,5 @@ Patch targets are keyed by the exact output of `isabelle version`
   layout, and how to add a new patch.
 - Feature docs (full protocol / rationale):
   [`pide_control.md`](my_better_isabelle_prover/patches/pide_control.md),
-  [`register_thy.md`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md).
+  [`register_thy.md`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md),
+  [`show_types_nv.md`](my_better_isabelle_prover/patches/show_types_nv.md).

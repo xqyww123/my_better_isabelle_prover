@@ -1,0 +1,42 @@
+--- a/src/Pure/Syntax/syntax_phases.ML
++++ b/src/Pure/Syntax/syntax_phases.ML
+@@ -651,31 +651,34 @@
+ fun term_to_ast is_syntax_const ctxt trf tm =
+   let
+     val show_types = Config.get ctxt show_types orelse Config.get ctxt show_sorts;
++    val show_types_nv = Config.get ctxt show_types_nv
+     val show_markup = Config.get ctxt show_markup;
+ 
+     fun ast_of tm =
+       (case strip_comb tm of
+         (t as Abs _, ts) => Ast.mk_appl (ast_of (Syntax_Trans.abs_tr' ctxt t)) (map ast_of ts)
+       | ((c as Const ("_free", _)), Free (x, T) :: ts) =>
+-          Ast.mk_appl (constrain (c $ Syntax.free x) T) (map ast_of ts)
++          Ast.mk_appl (constrain true (c $ Syntax.free x) T) (map ast_of ts)
+       | ((c as Const ("_var", _)), Var (xi, T) :: ts) =>
+-          Ast.mk_appl (constrain (c $ Syntax.var xi) T) (map ast_of ts)
++          Ast.mk_appl (constrain false (c $ Syntax.var xi) T) (map ast_of ts)
+       | ((c as Const ("_bound", B)), Free (x, T) :: ts) =>
+           let
+             val X =
+               if show_markup andalso not show_types orelse B <> dummyT then T
+               else dummyT;
+-          in Ast.mk_appl (constrain (c $ Syntax.free x) X) (map ast_of ts) end
++          in Ast.mk_appl (constrain false (c $ Syntax.free x) X) (map ast_of ts) end
+       | (Const ("_idtdummy", T), ts) =>
+-          Ast.mk_appl (constrain (Syntax.const "_idtdummy") T) (map ast_of ts)
++          Ast.mk_appl (constrain false (Syntax.const "_idtdummy") T) (map ast_of ts)
+       | (Const (c, T), ts) => trans c (Type_Annotation.smash T) ts
+       | (t, ts) => Ast.mk_appl (simple_ast_of ctxt t) (map ast_of ts))
+ 
+     and trans a T args = ast_of (trf a ctxt T args)
+       handle Match => Ast.mk_appl (Ast.Constant a) (map ast_of args)
+ 
+-    and constrain t T0 =
++    and constrain is_v t T0 =
+       let
++        val show_types = show_types andalso (not is_v orelse not show_types_nv)
++        val show_markup = show_markup andalso (not is_v orelse not show_types_nv)
+         val T =
+           if show_markup andalso not show_types
+           then Type_Annotation.clean T0
