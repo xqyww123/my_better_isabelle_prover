@@ -46,6 +46,7 @@ version. Run `my-better-isabelle status` to see which are applied.
 | [`register_thy`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md) | native | ✓ | Restores `Thy_Info.register_thy`, removed in 2025-2 |
 | [`show_types_nv`](my_better_isabelle_prover/patches/show_types_nv.md) | ✓ | ✓ | Custom `show_types_nv` option: suppress type annotations on free/fixed variables only |
 | `perspective_eof_clamp` | ✓ | ✓ | Clamp the caret-perspective window's lower bound to EOF (avoids an out-of-range `Text.Range` past the last line) |
+| [`expose_map_syn`](my_better_isabelle_prover/patches/expose_map_syn.md) | ✓ | ✓ | Export the private `Sign.map_syn` so ML can wholesale replace/clear a theory's inner syntax |
 
 ### `pide_control` — PIDE LSP control extensions
 

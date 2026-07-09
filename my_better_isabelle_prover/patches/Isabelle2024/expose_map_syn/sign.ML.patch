@@ -1,0 +1,10 @@
+--- a/src/Pure/sign.ML
++++ b/src/Pure/sign.ML
+@@ -12,6 +12,7 @@
+   val change_end_local: Proof.context -> Proof.context
+   val change_check: theory -> theory
+   val syntax_of: theory -> Syntax.syntax
++  val map_syn: (Syntax.syntax -> Syntax.syntax) -> theory -> theory
+   val tsig_of: theory -> Type.tsig
+   val classes_of: theory -> Sorts.algebra
+   val all_classes: theory -> class list
