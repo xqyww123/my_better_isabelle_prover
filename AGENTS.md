@@ -15,8 +15,10 @@ Scala.
 Every feature is classified `user` or `dev` in `patches/categories.toml`, and
 **`patch` applies only the `user` ones by default**:
 
-- **`user`** — needed by the user-facing systems (Isabelle-MCP; the SIMD FFI of
-  Semantic_Embedding).
+- **`user`** — needed by the user-facing systems. On Isabelle2025-2 that is now
+  only the SIMD FFI of Semantic_Embedding: **Isabelle-MCP no longer needs any
+  patch** (it ships its own `isabelle mcp_server` component and cancels via a
+  `use_prelude`-injected ML prelude built on the public `EXECUTION` API).
 - **`dev`** — needed only by developer/experiment infrastructure (Isa-REPL;
   Isa-Mini's translator and AoA agent injector). These are *compile-time*
   dependencies of that stack — without them `Thy_Info.register_thy`,
@@ -25,12 +27,19 @@ Every feature is classified `user` or `dev` in `patches/categories.toml`, and
   all`.**
 
 Features shipping today:
-- **`pide_control`** — *user* (Isabelle2024, Isabelle2025-2) — adds LSP requests
-  the stock `vscode_server` does not expose: `PIDE/theory_status`,
-  `PIDE/cancel_execution`, `PIDE/command_at_position`, `PIDE/output_at_position`,
-  `PIDE/symbols`. Edits Scala → needs a rebuild.
-- **`perspective_eof_clamp`** — *user* (Isabelle2024, Isabelle2025-2) — clamps the
-  caret perspective window's lower bound to EOF. Edits Scala → needs a rebuild.
+- **`pide_control`** — *user* — **Isabelle2024 only; RETIRED on Isabelle2025-2**
+  (reversed from that distribution, patch files deleted). Adds LSP requests the
+  stock `vscode_server` does not expose. The surviving Isabelle2024 feature has
+  five: `PIDE/theory_status`, `PIDE/cancel_execution`, `PIDE/command_at_position`,
+  `PIDE/output_at_position`, `PIDE/symbols`. (`PIDE/find_theorems_*` existed only
+  in the Isabelle2025-2 patch and went away with it — do not expect it on 2024.)
+  Isabelle-MCP now carries these in its own `isabelle mcp_server` component, and
+  got the ML half (global cancel) back from a `use_prelude`-injected prelude over
+  the public `EXECUTION` API — which also removed this feature's worst cost,
+  invalidating every heap by patching Pure ML.
+- **`perspective_eof_clamp`** — *user* — **Isabelle2024 only; RETIRED on
+  Isabelle2025-2**. Clamped the caret perspective window's lower bound to EOF; now
+  in Isabelle-MCP's own `vscode_model.scala`.
 - **`expose_foreign`** — *user* (Isabelle2025-2 only) — stops the Pure bootstrap
   from hiding Poly/ML's `Foreign` / `RunCall` / `CInterface` structures, without
   which ML using the FFI cannot compile. Pure ML → no scala rebuild (takes effect

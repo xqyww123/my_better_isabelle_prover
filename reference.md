@@ -28,21 +28,38 @@ version.
 
 | Feature | Category | Versions | Needed by | What it adds |
 |---------|----------|----------|-----------|--------------|
-| `pide_control` | user | Isabelle2024, Isabelle2025-2 | Isabelle-MCP | PIDE/LSP control requests the stock `vscode_server` does not expose (`theory_status`, `cancel_execution`, `command_at_position`, `output_at_position`, `symbols`). Edits Scala, so it triggers a `scala_build`. |
-| `perspective_eof_clamp` | user | Isabelle2024, Isabelle2025-2 | Isabelle-MCP | Clamps the caret-perspective window's lower bound to EOF, avoiding an out-of-range `Text.Range` past the last line. Edits Scala, so it triggers a `scala_build`. |
+| `pide_control` | user | **Isabelle2024 only** (retired on 2025-2) | Isabelle-MCP, up to its `last-isabelle2024-support` tag | PIDE/LSP control requests the stock `vscode_server` does not expose (`theory_status`, `cancel_execution`, `command_at_position`, `output_at_position`, `symbols`). Edits Scala, so it triggers a `scala_build`. |
+| `perspective_eof_clamp` | user | **Isabelle2024 only** (retired on 2025-2) | Isabelle-MCP, up to its `last-isabelle2024-support` tag | Clamps the caret-perspective window's lower bound to EOF, avoiding an out-of-range `Text.Range` past the last line. Edits Scala, so it triggers a `scala_build`. |
 | `expose_foreign` | user | Isabelle2025-2 only | Semantic_Embedding | Stops the Pure bootstrap from hiding Poly/ML's `Foreign` / `RunCall` / `CInterface` structures, without which ML that uses the FFI cannot compile (Isabelle2024 does not hide them, so no patch is needed there). Pure ML, so no `scala_build`. |
 | `register_thy` | dev | Isabelle2025-2 only | Isa-REPL | Restores `Thy_Info.register_thy`, removed by the 2025-2 loader refactoring (native in Isabelle2024, so no patch is needed there). Pure ML, so no `scala_build`. |
 | `show_types_nv` | dev | Isabelle2024, Isabelle2025-2 | Isa-Mini | Adds the `show_types_nv` printing option, which suppresses type annotations on free/fixed variables only. Pure ML + `etc/options`, so no `scala_build`. |
 | `expose_map_syn` | dev | Isabelle2024, Isabelle2025-2 | Isa-Mini | Exports the private `Sign.map_syn`, letting ML wholesale replace or clear a theory's inner syntax. Pure ML, so no `scala_build`. |
 
+> [!NOTE]
+> **Isabelle-MCP no longer needs any patch.** It now ships its own `isabelle
+> mcp_server` Scala component, which carries the LSP requests `pide_control` used
+> to add, and cancels through an ML prelude injected at prover startup, built from
+> the public `EXECUTION` API alone. `pide_control` and `perspective_eof_clamp` are
+> therefore **retired on Isabelle2025-2** — their patch files are gone from that
+> version — and survive only for Isabelle2024, which Isabelle-MCP no longer
+> targets. See the `last-isabelle2024-support` tag in both repositories.
+>
+> The practical consequence: on **Isabelle2025-2** a default `my-better-isabelle
+> patch` applies exactly one patch, `expose_foreign`, and (touching no Scala)
+> runs no `scala_build` at all.
+
 ## Categories
 
 Every feature is either `user` or `dev`; the mapping lives in
 `patches/categories.toml`, and a feature directory that is not registered there
-is a hard error (exit `3`).
+is a hard error (exit `3`). The table is version-independent — a feature that
+ships natively, or has been retired, simply has no patch directory for that
+version.
 
-- **`user`** — needed by the user-facing systems (Isabelle-MCP; the SIMD FFI of
-  Semantic_Embedding). `patch` applies these **by default**.
+- **`user`** — needed by the user-facing systems. `patch` applies these **by
+  default**. On Isabelle2025-2 that is now only the SIMD FFI of
+  Semantic_Embedding (`expose_foreign`); the two Isabelle-MCP features survive for
+  Isabelle2024 alone (see the note above).
 - **`dev`** — needed only by developer/experiment infrastructure (Isa-REPL;
   Isa-Mini's translator and AoA agent injector). These are **compile-time**
   dependencies of that stack: without them `Thy_Info.register_thy`,

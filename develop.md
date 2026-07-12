@@ -57,7 +57,7 @@ configuration.
 my_better_isabelle_prover/patches/
 ├── __init__.py                 # discovery logic (versions, features, categories, ordering)
 ├── categories.toml             # feature -> user | dev
-├── pide_control.md             # feature doc shared across versions
+├── pide_control.md             # feature doc (cross-version location, 2024-only feature)
 ├── Isabelle2024/
 │   └── pide_control/
 │       ├── execution.ML.patch
@@ -66,12 +66,18 @@ my_better_isabelle_prover/patches/
 │       ├── lsp.scala.patch
 │       └── language_server.scala.patch
 └── Isabelle2025-2/
-    ├── pide_control/            # same five patches, adapted to 2025-2 source
-    │   └── ...
+    ├── expose_foreign/          # no pide_control here: retired on 2025-2
+    │   └── ml_name_space.ML.patch
     ├── register_thy/
     │   └── thy_info.ML.patch
     └── register_thy.md          # version-specific feature doc
 ```
+
+A feature exists for a version only if it has a directory there. The two are
+independent: `expose_foreign` and `register_thy` ship natively on Isabelle2024,
+while `pide_control` and `perspective_eof_clamp` were *retired* on Isabelle2025-2
+(Isabelle-MCP now carries them in its own `isabelle mcp_server` component). Both
+cases look the same on disk — no directory — and both are fine.
 
 - **`patches/<version>/`** — one directory per Isabelle version. The directory
   name must equal the `isabelle version` string exactly. Names starting with `_`
@@ -106,8 +112,9 @@ my_better_isabelle_prover/patches/
    unregistered feature directory makes *every* command exit `3`, deliberately,
    so that a new patch can neither be shipped to users unvetted nor be silently
    withheld from the stack that needs it. Ask which category it belongs in if it
-   is not obvious — `user` means a user-facing system (Isabelle-MCP,
-   Semantic_Embedding) needs it.
+   is not obvious — `user` means a *user-facing* system needs it (today:
+   Semantic_Embedding's SIMD FFI), while `dev` means only the
+   developer/experiment stack does (Isa-REPL, Isa-Mini).
 
 4. **Verify discovery and clean status** — run `my-better-isabelle status
    --feature <name>`. A correctly authored patch on pristine source reports
