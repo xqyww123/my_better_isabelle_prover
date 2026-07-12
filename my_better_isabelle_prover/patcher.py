@@ -128,8 +128,23 @@ def apply_all(
     return success
 
 
-def print_status(isabelle_home: Path, patches: list[PatchInfo]) -> bool:
+def print_status(
+    isabelle_home: Path,
+    patches: list[PatchInfo],
+    selected: list[PatchInfo] | None = None,
+) -> bool:
+    """Print the status of every patch in `patches`; report whether `selected` is
+    fully applied.
+
+    Display and verdict are deliberately decoupled: `status` always lists every
+    feature (hiding the opted-out ones would misrepresent the install), while the
+    exit code speaks only for the patches the caller selected.
+    """
+    gated = {p.patch_path for p in (patches if selected is None else selected)}
+    applied: dict[str, int] = {}
+    total: dict[str, int] = {}
     all_applied = True
+
     for patch in patches:
         status = check_status(isabelle_home, patch)
         marker = {
@@ -137,8 +152,18 @@ def print_status(isabelle_home: Path, patches: list[PatchInfo]) -> bool:
             PatchStatus.NOT_APPLIED: "not-applied",
             PatchStatus.CONFLICT: "CONFLICT",
         }[status]
-        if status != PatchStatus.APPLIED:
+        if status != PatchStatus.APPLIED and patch.patch_path in gated:
             all_applied = False
+        total[patch.category] = total.get(patch.category, 0) + 1
+        if status == PatchStatus.APPLIED:
+            applied[patch.category] = applied.get(patch.category, 0) + 1
         target = patch.target_relative
-        print(f"  [{marker:>11s}]  {patch.feature}/{patch.patch_path.name}  ({target})")
+        print(f"  [{marker:>11s}]  {patch.category:<4s}  "
+              f"{patch.feature}/{patch.patch_path.name}  ({target})")
+
+    summary = " · ".join(
+        f"{cat}: {applied.get(cat, 0)}/{total[cat]} applied" for cat in sorted(total)
+    )
+    if summary:
+        print(f"  {summary}")
     return all_applied

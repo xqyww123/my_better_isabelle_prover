@@ -12,21 +12,42 @@ Pure ML loader and the `vscode_server` Scala) as version-keyed unified diffs, an
 applies, reverses, and checks them idempotently — then rebuilds the affected
 Scala.
 
-Features shipping today:
-- **`pide_control`** (Isabelle2024, Isabelle2025-2) — adds LSP requests the stock
-  `vscode_server` does not expose: `PIDE/theory_status`, `PIDE/cancel_execution`,
-  `PIDE/command_at_position`, `PIDE/output_at_position`, `PIDE/symbols`. Edits
-  Scala → needs a rebuild.
-- **`register_thy`** (Isabelle2025-2 only) — restores `Thy_Info.register_thy`,
-  removed by the 2025-2 loader refactoring. Pure ML → no rebuild.
-- **`show_types_nv`** (Isabelle2024, Isabelle2025-2) — custom `show_types_nv`
-  printing option that suppresses type annotations on free/fixed variables only.
-  Pure ML + `etc/options` → no scala rebuild (takes effect on Pure heap rebuild).
-- **`perspective_eof_clamp`** (Isabelle2024, Isabelle2025-2) — clamps the caret
-  perspective window's lower bound to EOF. Edits Scala → needs a rebuild.
+Every feature is classified `user` or `dev` in `patches/categories.toml`, and
+**`patch` applies only the `user` ones by default**:
 
-It is a thin, dependency-free wrapper around the system `patch` tool. There is no
-per-patch config; everything is driven from the `.patch` files on disk.
+- **`user`** — needed by the user-facing systems (Isabelle-MCP; the SIMD FFI of
+  Semantic_Embedding).
+- **`dev`** — needed only by developer/experiment infrastructure (Isa-REPL;
+  Isa-Mini's translator and AoA agent injector). These are *compile-time*
+  dependencies of that stack — without them `Thy_Info.register_thy`,
+  `Printer.show_types_nv` and `Sign.map_syn` do not exist and the ML fails to
+  compile. **Working on that stack? Use `my-better-isabelle patch --category
+  all`.**
+
+Features shipping today:
+- **`pide_control`** — *user* (Isabelle2024, Isabelle2025-2) — adds LSP requests
+  the stock `vscode_server` does not expose: `PIDE/theory_status`,
+  `PIDE/cancel_execution`, `PIDE/command_at_position`, `PIDE/output_at_position`,
+  `PIDE/symbols`. Edits Scala → needs a rebuild.
+- **`perspective_eof_clamp`** — *user* (Isabelle2024, Isabelle2025-2) — clamps the
+  caret perspective window's lower bound to EOF. Edits Scala → needs a rebuild.
+- **`expose_foreign`** — *user* (Isabelle2025-2 only) — stops the Pure bootstrap
+  from hiding Poly/ML's `Foreign` / `RunCall` / `CInterface` structures, without
+  which ML using the FFI cannot compile. Pure ML → no scala rebuild (takes effect
+  on Pure heap rebuild).
+- **`register_thy`** — *dev* (Isabelle2025-2 only) — restores
+  `Thy_Info.register_thy`, removed by the 2025-2 loader refactoring. Pure ML → no
+  rebuild.
+- **`show_types_nv`** — *dev* (Isabelle2024, Isabelle2025-2) — custom
+  `show_types_nv` printing option that suppresses type annotations on free/fixed
+  variables only. Pure ML + `etc/options` → no scala rebuild (takes effect on Pure
+  heap rebuild).
+- **`expose_map_syn`** — *dev* (Isabelle2024, Isabelle2025-2) — exports the private
+  `Sign.map_syn` so ML can wholesale replace/clear a theory's inner syntax. Pure
+  ML → no rebuild.
+
+It is a thin, dependency-free wrapper around the system `patch` tool. Apart from
+the category table, everything is driven from the `.patch` files on disk.
 
 ## Prerequisites (verify before doing anything)
 
@@ -47,10 +68,13 @@ The package installs a `my-better-isabelle` console script; equivalently
 # 1. Inspect current state first — non-destructive, tells you what is applied.
 my-better-isabelle status
 
-# 2. Apply all patches for the detected version, then rebuild Scala.
+# 2. Apply the `user` patches for the detected version, then rebuild Scala.
 my-better-isabelle patch
 
-# 3. Reverse them (undone in reverse apply order).
+# 2b. ... or everything, including the `dev` patches Isa-REPL / Isa-Mini need.
+my-better-isabelle patch --category all
+
+# 3. Reverse them all (undone in reverse apply order).
 my-better-isabelle unpatch
 
 # 4. Rebuild Scala on its own (e.g. after `patch --no-build`).
@@ -59,12 +83,15 @@ my-better-isabelle build
 
 Useful flags (full list in [reference.md](reference.md)):
 - `--isabelle-bin PATH` — target a specific Isabelle when several are installed.
-- `--feature NAME` — limit to one feature (e.g. `pide_control`, `register_thy`,
-  `show_types_nv`, `perspective_eof_clamp`; see `status` for the full list).
+- `--category user|dev|all` — which category to act on. Defaults differ per
+  command: `patch` → `user`, `unpatch` → `all`, `status` → `user` (there it gates
+  the exit code only).
+- `--feature NAME` — limit to one feature (see `status` for the full list).
+  Overrides `--category`.
 - `--dry-run` — check without modifying any file. **Prefer this first** when
   unsure.
-- `--no-build` — skip `isabelle scala_build`; correct for pure-ML patches like
-  `register_thy`.
+- `--no-build` — skip `isabelle scala_build`. Rarely needed: a selection that
+  touches no `.scala` source already skips it.
 - `--force` — continue past conflicts / re-apply. Use sparingly; a `CONFLICT`
   usually means the target source does not match what the patch expects.
 
@@ -78,16 +105,25 @@ Useful flags (full list in [reference.md](reference.md)):
   `CONFLICT` with `--force` without understanding why the source diverged.
 - **Read-only safe.** Distribution files are made writable for the apply and
   restored afterward.
+- **`status` shows everything, judges only the selection.** It always lists every
+  feature — including `dev` ones you did not ask for, which on a default install
+  legitimately read `not-applied`. The **exit code** reflects only the selected
+  category (`user` by default). So do not conclude an install is broken because
+  `not-applied` appears in the output.
 - **Exit codes.** `0` success (or nothing to do); `1` setup error / patch
-  conflict / `status` found a patch not applied or in conflict; `2` patching
-  succeeded but `scala_build` failed. Check these rather than parsing stdout.
+  conflict / `status` found a *selected* patch not applied or in conflict; `2`
+  patching succeeded but `scala_build` failed; `3` broken patch repository (a
+  feature directory not registered in `categories.toml`). **Check these rather
+  than parsing stdout.**
 
 ## When changing patches
 
 Do **not** hand-edit Isabelle source in place to "fix" things. Author a diff
 against pristine source, drop it under the right
-`patches/<version>/<feature>/` directory, and verify with
-`my-better-isabelle status`. Full procedure in [develop.md](develop.md).
+`patches/<version>/<feature>/` directory, **register its category in
+`patches/categories.toml`** (an unregistered feature makes every command exit
+`3`), and verify with `my-better-isabelle status --feature <name>`. Full
+procedure in [develop.md](develop.md).
 
 ## Project rules
 

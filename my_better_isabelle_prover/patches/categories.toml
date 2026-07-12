@@ -1,0 +1,22 @@
+# Feature categories.
+#
+#   user — needed by the user-facing systems (Isabelle-MCP; Semantic_Embedding's
+#          SIMD FFI). Applied by default: `my-better-isabelle patch`.
+#   dev  — needed only by developer/experiment infrastructure (Isa-REPL, Isa-Mini's
+#          translator and AoA agent injector). Opt in with `patch --category all`.
+#
+# Every feature directory under patches/<version>/ must be registered here; an
+# unregistered one is a hard error (exit 3) rather than a silent default.
+#
+# This table is version-independent. Features that ship natively on some Isabelle
+# version simply have no patch directory there (register_thy and expose_foreign
+# are Isabelle2025-2 only), so do NOT validate the other direction: an entry with
+# no directory is normal, not an error.
+
+[features]
+pide_control          = "user"
+perspective_eof_clamp = "user"
+expose_foreign        = "user"
+register_thy          = "dev"
+show_types_nv         = "dev"
+expose_map_syn        = "dev"

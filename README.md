@@ -6,17 +6,19 @@ GitHub: <https://github.com/xqyww123/my_better_isabelle_prover>
 
 It exists primarily to support
 [**Isabelle-MCP**](https://github.com/xqyww123/Isabelle-MCP) (Isa-LSP), an MCP
-server that drives Isabelle over its LSP interface for AI agents. That server
-needs PIDE/LSP requests the stock `vscode_server` does not expose, and the
-[`Isa-REPL`](https://github.com/xqyww123/Isa-REPL) it builds on needs an ML
-loader function that Isabelle2025-2 removed. This tool keeps the edits that add
-them as
+server that drives Isabelle over its LSP interface for AI agents: that server
+needs PIDE/LSP requests the stock `vscode_server` does not expose. It also
+carries the patches that the surrounding Isabelle/ML research stack
+([`Isa-REPL`](https://github.com/xqyww123/Isa-REPL), Isa-Mini) needs — notably an
+ML loader function that Isabelle2025-2 removed. This tool keeps those edits as
 version-keyed unified diffs and applies, reverses, and checks them idempotently,
 then rebuilds the affected Scala when needed.
 
 > [!IMPORTANT]
-> **Isabelle-MCP and Isa-REPL require this patch** — run `my-better-isabelle
-> patch` against your Isabelle before using them.
+> **Isabelle-MCP requires this patch** — run `my-better-isabelle patch` against
+> your Isabelle before using it. **Developing against Isa-REPL or Isa-Mini
+> additionally needs `my-better-isabelle patch --category all`** (see
+> [Categories](#categories)).
 >
 > Before using this tool, make sure the `isabelle` command is available — on
 > your `PATH`, or passed explicitly via `--isabelle-bin PATH`. Every command
@@ -26,9 +28,10 @@ then rebuilds the affected Scala when needed.
 
 ```bash
 pip install -e .
-my-better-isabelle patch          # apply all patches for the detected version
+my-better-isabelle patch          # apply the `user` patches for the detected version
+my-better-isabelle patch --category all   # ... plus the `dev` ones
 my-better-isabelle status         # show what is applied
-my-better-isabelle unpatch        # reverse them
+my-better-isabelle unpatch        # reverse them all
 ```
 
 The Python version constraint is declared in `pyproject.toml`. See
@@ -40,13 +43,38 @@ options.
 A *feature* is one self-consistent bundle of patches, stored per Isabelle
 version. Run `my-better-isabelle status` to see which are applied.
 
-| Feature | Isabelle2024 | Isabelle2025-2 | What it adds |
-|---------|:---:|:---:|--------------|
-| [`pide_control`](my_better_isabelle_prover/patches/pide_control.md) | ✓ | ✓ | PIDE LSP control requests the stock `vscode_server` does not expose |
-| [`register_thy`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md) | native | ✓ | Restores `Thy_Info.register_thy`, removed in 2025-2 |
-| [`show_types_nv`](my_better_isabelle_prover/patches/show_types_nv.md) | ✓ | ✓ | Custom `show_types_nv` option: suppress type annotations on free/fixed variables only |
-| `perspective_eof_clamp` | ✓ | ✓ | Clamp the caret-perspective window's lower bound to EOF (avoids an out-of-range `Text.Range` past the last line) |
-| [`expose_map_syn`](my_better_isabelle_prover/patches/expose_map_syn.md) | ✓ | ✓ | Export the private `Sign.map_syn` so ML can wholesale replace/clear a theory's inner syntax |
+| Feature | Category | Isabelle2024 | Isabelle2025-2 | What it adds |
+|---------|:---:|:---:|:---:|--------------|
+| [`pide_control`](my_better_isabelle_prover/patches/pide_control.md) | user | ✓ | ✓ | PIDE LSP control requests the stock `vscode_server` does not expose |
+| `perspective_eof_clamp` | user | ✓ | ✓ | Clamp the caret-perspective window's lower bound to EOF (avoids an out-of-range `Text.Range` past the last line) |
+| [`expose_foreign`](my_better_isabelle_prover/patches/expose_foreign.md) | user | native | ✓ | Stop hiding Poly/ML's `Foreign`/`RunCall`/`CInterface` FFI structures, which 2025-2 forgets during the Pure bootstrap |
+| [`register_thy`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md) | dev | native | ✓ | Restores `Thy_Info.register_thy`, removed in 2025-2 |
+| [`show_types_nv`](my_better_isabelle_prover/patches/show_types_nv.md) | dev | ✓ | ✓ | Custom `show_types_nv` option: suppress type annotations on free/fixed variables only |
+| [`expose_map_syn`](my_better_isabelle_prover/patches/expose_map_syn.md) | dev | ✓ | ✓ | Export the private `Sign.map_syn` so ML can wholesale replace/clear a theory's inner syntax |
+
+## Categories
+
+Each feature is either `user` or `dev`, and `my-better-isabelle patch` applies
+**only the `user` ones by default**.
+
+- **`user`** — needed by the user-facing systems: **Isabelle-MCP**, and the SIMD
+  FFI of `Semantic_Embedding`.
+- **`dev`** — needed only by developer/experiment infrastructure: **Isa-REPL**,
+  and Isa-Mini's translator and AoA agent injector.
+
+> [!WARNING]
+> The three `dev` patches are **compile-time** dependencies of that stack —
+> `Thy_Info.register_thy`, `Printer.show_types_nv`, `Sign.map_syn` simply do not
+> exist without them, so the ML fails to compile. If you are building or running
+> Isa-REPL / Isa-Mini, apply everything:
+>
+> ```bash
+> my-better-isabelle patch --category all
+> ```
+
+`status` always lists every feature regardless of category; its *exit code*
+reflects only the selected category (`user` by default). Categories live in
+[`patches/categories.toml`](my_better_isabelle_prover/patches/categories.toml).
 
 ### `pide_control` — PIDE LSP control extensions
 

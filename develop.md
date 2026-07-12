@@ -38,16 +38,25 @@ configuration.
   first, in that order; any remaining features follow alphabetically. `unpatch`
   reverses this order. Without an `order.txt`, features are simply alphabetical.
 
+- **Feature categories** — every feature is `user` or `dev`, declared in
+  `patches/categories.toml`. `patch` applies only `user` by default. The table is
+  version-independent, and validation runs in one direction only: a feature
+  *directory* with no entry is a hard error (exit `3`), while an *entry* with no
+  directory is normal — `register_thy` and `expose_foreign` ship natively on
+  Isabelle2024 and have no patch directory there.
+
 - **Scala rebuild** — `patch` / `unpatch` run `isabelle scala_build -f`
-  afterward, because the `vscode_server` Scala must be recompiled to take effect.
-  Pure-ML-only patches (e.g. `register_thy`) do not need it — use `--no-build`,
-  or the standalone `build` command when you do.
+  afterward, but only when the patches they actually touched include a `.scala`
+  target; a pure-ML selection (e.g. `--category dev`, or `--feature
+  register_thy`) skips the rebuild by itself. `--no-build` forces the skip, and
+  the standalone `build` command runs it on its own.
 
 ## Patch-repository layout
 
 ```
 my_better_isabelle_prover/patches/
-├── __init__.py                 # discovery logic (versions, features, ordering)
+├── __init__.py                 # discovery logic (versions, features, categories, ordering)
+├── categories.toml             # feature -> user | dev
 ├── pide_control.md             # feature doc shared across versions
 ├── Isabelle2024/
 │   └── pide_control/
@@ -69,7 +78,10 @@ my_better_isabelle_prover/patches/
   are ignored by version discovery.
 - **`<version>/<feature>/`** — one directory per feature; every `*.patch` in it
   belongs to that feature. Patches within a feature are applied in filename
-  (sorted) order.
+  (sorted) order. Names starting with `_` or `.` are ignored, so a scratch
+  directory does not become an accidental feature.
+- **`categories.toml`** — the `[features]` table maps every feature name to
+  `user` or `dev`. Shared across versions.
 - **Target path** — each patch's target file is read from its unified-diff
   `--- a/<path>` header, so the path is relative to `ISABELLE_HOME` and the
   filename of the `.patch` itself is just for humans.
@@ -89,14 +101,26 @@ my_better_isabelle_prover/patches/
    Create the `<feature>/` directory if new. If the feature must apply before or
    after others, add it to `patches/<version>/order.txt`.
 
-3. **Verify discovery and clean status** — run `my-better-isabelle status`
-   (optionally `--feature <name>`). A correctly authored patch on pristine source
-   reports `not-applied`; after `patch`, it reports `applied`; `unpatch` returns
-   it to `not-applied`. Anything reporting `CONFLICT` on pristine source means
-   the context does not match (wrong version, wrong `-p` level, or stale diff).
+3. **Register its category** — add the feature to the `[features]` table in
+   `patches/categories.toml` as `user` or `dev`. This is **not optional**: an
+   unregistered feature directory makes *every* command exit `3`, deliberately,
+   so that a new patch can neither be shipped to users unvetted nor be silently
+   withheld from the stack that needs it. Ask which category it belongs in if it
+   is not obvious — `user` means a user-facing system (Isabelle-MCP,
+   Semantic_Embedding) needs it.
 
-4. **Decide on the build step.** Scala edits need `scala_build` (the default).
-   Pure-ML edits do not — note that in the feature doc and use `--no-build`.
+4. **Verify discovery and clean status** — run `my-better-isabelle status
+   --feature <name>`. A correctly authored patch on pristine source reports
+   `not-applied` (and, because you selected it, exit code `1`); after `patch
+   --feature <name>` it reports `applied` and exits `0`; `unpatch --feature
+   <name>` returns it to `not-applied`. Anything reporting `CONFLICT` on pristine
+   source means the context does not match (wrong version, wrong `-p` level, or
+   stale diff).
 
-5. **Document it.** Add or update the feature's `.md` file, and the feature table
-   in the top-level `README.md`.
+5. **Check the build step.** A `.scala` target triggers `scala_build`
+   automatically; a pure-ML feature skips it on its own. Note in the feature doc
+   whether it instead needs a Pure/HOL **heap** rebuild to take effect — the tool
+   never does that for you.
+
+6. **Document it.** Add or update the feature's `.md` file, and the feature tables
+   in `README.md` and `reference.md`.
