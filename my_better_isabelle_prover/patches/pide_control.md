@@ -1,5 +1,17 @@
 # Feature: `pide_control` — PIDE LSP Control Extensions
 
+> [!WARNING]
+> **RETIRED on Isabelle2025-2** (2026-07-12): the patch has been reversed from that
+> distribution and its patch files deleted. Isabelle-MCP forked the `vscode_server`
+> sources into its own `isabelle mcp_server` component, so the LSP requests below are
+> now that component's own code; and it replaced the ML half with an ML prelude injected
+> at prover startup (`ML_Process` `use_prelude`) that builds a global cancel out of
+> `Execution.discontinue` + `Execution.cancel` — public API only. See
+> `Isabelle-MCP/scala/docs/CANCELLATION.md`.
+>
+> This document therefore describes the **Isabelle2024** feature, which is still applied
+> there. The last state where 2025-2 carried it is tagged `last-isabelle2024-support`.
+
 Bundles related PIDE LSP requests that Isabelle's stock `vscode_server` does
 not expose:
 
