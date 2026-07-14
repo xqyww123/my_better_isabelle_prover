@@ -147,6 +147,7 @@ Patch targets are keyed by the exact output of `isabelle version`
   exit codes, and runtime prerequisites.
 - **[develop.md](develop.md)** — how the manager works, the patch-repository
   layout, and how to add a new patch.
+- **[RELEASE.md](RELEASE.md)** — how a version is cut and published to PyPI.
 - Feature docs (full protocol / rationale):
   [`pide_control.md`](my_better_isabelle_prover/patches/pide_control.md),
   [`expose_foreign.md`](my_better_isabelle_prover/patches/expose_foreign.md),
