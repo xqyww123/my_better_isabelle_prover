@@ -75,8 +75,11 @@ export TWINE_USERNAME=__token__
 twine upload dist/my_better_isabelle_prover-X.Y.Z*
 
 # 6. Verify from PyPI, not from the working tree (see the trap below).
+cd /tmp                               # NOT the checkout — see the trap below
 python3 -m venv /tmp/verify && env -u PYTHONPATH /tmp/verify/bin/pip install \
     "my-better-isabelle-prover==X.Y.Z"
+env -u PYTHONPATH /tmp/verify/bin/python -c \
+    "import my_better_isabelle_prover as m; print(m.__version__, m.__file__)"
 env -u PYTHONPATH /tmp/verify/bin/my-better-isabelle status
 ```
 
@@ -99,8 +102,18 @@ feature apply order will be right in git and wrong in the wheel.
 
 ## The verification trap
 
-The development checkout is on `PYTHONPATH`, so a plain
-`pip install && my-better-isabelle ...` inside a fresh venv can still import the
-**source tree** and report success for a wheel that never worked. Prefix the
-verification commands with `env -u PYTHONPATH` (as in step 6) and confirm the
-version you get back is the one you just released.
+A fresh venv is not enough to guarantee you are testing the wheel. The source tree
+can shadow the installed package **two** ways, and both make a broken wheel look
+fine:
+
+- The development checkout is on `PYTHONPATH` — hence `env -u PYTHONPATH` on every
+  verification command.
+- `python -c` puts the current directory on `sys.path`, so running it from inside
+  the checkout imports `./my_better_isabelle_prover/` regardless. Verify from a
+  neutral `cwd` (step 6 starts with `cd /tmp`).
+
+The console script is immune to the second one (its `sys.path[0]` is the venv's
+`bin/`), which is what makes the trap subtle: the CLI genuinely exercises the
+wheel while an `import` check next to it silently reports on the source tree.
+Always print `m.__file__` alongside the version and confirm the path lands in
+`site-packages`.
