@@ -28,8 +28,7 @@ version.
 
 | Feature | Category | Versions | Needed by | What it adds |
 |---------|----------|----------|-----------|--------------|
-| `pide_control` | user | **Isabelle2024 only** (retired on 2025-2) | Isabelle-MCP, up to its `last-isabelle2024-support` tag | PIDE/LSP control requests the stock `vscode_server` does not expose (`theory_status`, `cancel_execution`, `command_at_position`, `output_at_position`, `symbols`). Edits Scala, so it triggers a `scala_build`. |
-| `perspective_eof_clamp` | user | **Isabelle2024 only** (retired on 2025-2) | Isabelle-MCP, up to its `last-isabelle2024-support` tag | Clamps the caret-perspective window's lower bound to EOF, avoiding an out-of-range `Text.Range` past the last line. Edits Scala, so it triggers a `scala_build`. |
+| [`future_assign_interrupt`](my_better_isabelle_prover/patches/future_assign_interrupt.md) | user | Isabelle2024, Isabelle2025-2 | everyone — it is a correctness fix | Stops `Future.assign_result` from dropping an asynchronous interrupt raised inside `Single_Assignment.assign`, which then surfaced as `exception Option` from the `the` below it. Pure ML, so no `scala_build`. |
 | `expose_foreign` | user | Isabelle2025-2 only | Semantic_Embedding | Stops the Pure bootstrap from hiding Poly/ML's `Foreign` / `RunCall` / `CInterface` structures, without which ML that uses the FFI cannot compile (Isabelle2024 does not hide them, so no patch is needed there). Pure ML, so no `scala_build`. |
 | `register_thy` | dev | Isabelle2025-2 only | Isa-REPL | Restores `Thy_Info.register_thy`, removed by the 2025-2 loader refactoring (native in Isabelle2024, so no patch is needed there). Pure ML, so no `scala_build`. |
 | `show_types_nv` | dev | Isabelle2024, Isabelle2025-2 | Isa-Mini | Adds the `show_types_nv` printing option, which suppresses type annotations on free/fixed variables only. Pure ML + `etc/options`, so no `scala_build`. |
@@ -37,16 +36,16 @@ version.
 
 > [!NOTE]
 > **Isabelle-MCP no longer needs any patch.** It now ships its own `isabelle
-> mcp_server` Scala component, which carries the LSP requests `pide_control` used
-> to add, and cancels through an ML prelude injected at prover startup, built from
-> the public `EXECUTION` API alone. `pide_control` and `perspective_eof_clamp` are
-> therefore **retired on Isabelle2025-2** — their patch files are gone from that
-> version — and survive only for Isabelle2024, which Isabelle-MCP no longer
-> targets. See the `last-isabelle2024-support` tag in both repositories.
+> mcp_server` Scala component, which carries the LSP requests the retired
+> `pide_control` feature used to add, and cancels through an ML prelude injected
+> at prover startup, built from the public `EXECUTION` API alone. That feature and
+> `perspective_eof_clamp` were **removed from this repository** on 2026-09-08,
+> having already been retired on Isabelle2025-2; the last state carrying them is
+> tagged `last-isabelle2024-support` in both repositories.
 >
-> The practical consequence: on **Isabelle2025-2** a default `my-better-isabelle
-> patch` applies exactly one patch, `expose_foreign`, and (touching no Scala)
-> runs no `scala_build` at all.
+> The practical consequence: no feature edits Scala any more, so
+> `my-better-isabelle patch` never runs a `scala_build` — every remaining feature
+> is Pure ML and takes effect on the next Pure heap rebuild.
 
 ## Categories
 
@@ -113,7 +112,7 @@ my-better-isabelle patch --dry-run
 
 # just one feature, against an explicit Isabelle, without rebuilding
 my-better-isabelle --isabelle-bin /opt/Isabelle2024/bin/isabelle \
-    patch --feature pide_control --no-build
+    patch --feature future_assign_interrupt --no-build
 ```
 
 ### `unpatch` — reverse patches
@@ -125,7 +124,7 @@ not applied is skipped unless `--force`.
 
 ```bash
 my-better-isabelle unpatch
-my-better-isabelle unpatch --feature pide_control --dry-run
+my-better-isabelle unpatch --feature future_assign_interrupt --dry-run
 ```
 
 ### `status` — show patch status

@@ -1,0 +1,12 @@
+--- a/src/Pure/Concurrent/future.ML
++++ b/src/Pure/Concurrent/future.ML
+@@ -427,7 +427,8 @@
+           (case Single_Assignment.peek result of
+             SOME (Exn.Exn e) => Exn.reraise (if Exn.is_interrupt_proper e then e else exn)
+           | _ => Exn.reraise exn)
+-      | _ => ());
++      | Exn.Exn exn => if Exn.is_interrupt exn then Exn.reraise exn else ()
++      | Exn.Res _ => ());
+     val ok =
+       (case the (Single_Assignment.peek result) of
+         Exn.Exn exn =>

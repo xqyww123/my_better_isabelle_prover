@@ -57,27 +57,25 @@ configuration.
 my_better_isabelle_prover/patches/
 ├── __init__.py                 # discovery logic (versions, features, categories, ordering)
 ├── categories.toml             # feature -> user | dev
-├── pide_control.md             # feature doc (cross-version location, 2024-only feature)
+├── future_assign_interrupt.md  # feature doc (cross-version location)
 ├── Isabelle2024/
-│   └── pide_control/
-│       ├── execution.ML.patch
-│       ├── protocol.ML.patch
-│       ├── protocol.scala.patch
-│       ├── lsp.scala.patch
-│       └── language_server.scala.patch
+│   └── future_assign_interrupt/
+│       └── future.ML.patch
 └── Isabelle2025-2/
-    ├── expose_foreign/          # no pide_control here: retired on 2025-2
+    ├── expose_foreign/          # Isabelle2025-2 only: native on 2024
     │   └── ml_name_space.ML.patch
+    ├── future_assign_interrupt/ # same diff as the 2024 one: the source is identical
+    │   └── future.ML.patch
     ├── register_thy/
     │   └── thy_info.ML.patch
     └── register_thy.md          # version-specific feature doc
 ```
 
-A feature exists for a version only if it has a directory there. The two are
-independent: `expose_foreign` and `register_thy` ship natively on Isabelle2024,
-while `pide_control` and `perspective_eof_clamp` were *retired* on Isabelle2025-2
-(Isabelle-MCP now carries them in its own `isabelle mcp_server` component). Both
-cases look the same on disk — no directory — and both are fine.
+A feature exists for a version only if it has a directory there — `expose_foreign`
+and `register_thy` ship natively on Isabelle2024, so they have none. A feature
+that is *retired* looks the same on disk, and both cases are fine. (Two retired
+features, `pide_control` and `perspective_eof_clamp`, were removed outright on
+2026-09-08; the last state carrying them is tagged `last-isabelle2024-support`.)
 
 - **`patches/<version>/`** — one directory per Isabelle version. The directory
   name must equal the `isabelle version` string exactly. Names starting with `_`
@@ -94,7 +92,7 @@ cases look the same on disk — no directory — and both are fine.
 - **`order.txt`** (optional, per version) — feature apply order, as above.
 - **Docs** — feature `.md` files live next to the patches (`patches/*.md` for a
   cross-version feature, or `patches/<version>/*.md` for a version-specific one);
-  they document rationale and, for `pide_control`, the full LSP protocol.
+  they document the rationale, and for a bug fix the evidence behind it.
 
 ## Adding a new patch
 

@@ -1,7 +1,8 @@
 # Feature categories.
 #
-#   user — needed by the user-facing systems (Isabelle-MCP; Semantic_Embedding's
-#          SIMD FFI). Applied by default: `my-better-isabelle patch`.
+#   user — needed by the user-facing systems (Semantic_Embedding's SIMD FFI), or
+#          a correctness fix everyone should have (future_assign_interrupt).
+#          Applied by default: `my-better-isabelle patch`.
 #   dev  — needed only by developer/experiment infrastructure (Isa-REPL, Isa-Mini's
 #          translator and AoA agent injector). Opt in with `patch --category all`.
 #
@@ -14,9 +15,8 @@
 # no directory is normal, not an error.
 
 [features]
-pide_control          = "user"
-perspective_eof_clamp = "user"
-expose_foreign        = "user"
-register_thy          = "dev"
-show_types_nv         = "dev"
-expose_map_syn        = "dev"
+expose_foreign          = "user"
+future_assign_interrupt = "user"
+register_thy            = "dev"
+show_types_nv           = "dev"
+expose_map_syn          = "dev"

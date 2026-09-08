@@ -17,10 +17,11 @@ then rebuilds the affected Scala when needed.
 > lacked, and its ML half gave PIDE a global-cancel command. Isabelle-MCP now
 > ships its own `isabelle mcp_server` Scala component (which carries those
 > requests as its own code) and cancels through an ML prelude injected at prover
-> startup, built from the public `EXECUTION` API alone. Both `pide_control` and
-> `perspective_eof_clamp` are therefore **retired on Isabelle2025-2**; they remain
-> only for Isabelle2024, which Isabelle-MCP no longer targets. See the
-> `last-isabelle2024-support` tag in both repositories.
+> startup, built from the public `EXECUTION` API alone. `pide_control` and
+> `perspective_eof_clamp` were therefore retired on Isabelle2025-2, and
+> **removed from this repository on 2026-09-08**; the last state carrying them is
+> tagged `last-isabelle2024-support` in both repositories. No remaining feature
+> edits Scala, so `patch` no longer runs `scala_build` at all.
 
 > [!IMPORTANT]
 > **Developing against Isa-REPL or Isa-Mini needs
@@ -51,8 +52,7 @@ version. Run `my-better-isabelle status` to see which are applied.
 
 | Feature | Category | Isabelle2024 | Isabelle2025-2 | What it adds |
 |---------|:---:|:---:|:---:|--------------|
-| [`pide_control`](my_better_isabelle_prover/patches/pide_control.md) | user | ✓ | **retired** | PIDE LSP control requests the stock `vscode_server` does not expose. Isabelle-MCP now carries them in its own component — see the note above |
-| `perspective_eof_clamp` | user | ✓ | **retired** | Clamp the caret-perspective window's lower bound to EOF (avoids an out-of-range `Text.Range` past the last line). Likewise now in Isabelle-MCP's own `vscode_model.scala` |
+| [`future_assign_interrupt`](my_better_isabelle_prover/patches/future_assign_interrupt.md) | user | ✓ | ✓ | **Bug fix.** Stop `Future.assign_result` from swallowing an interrupt raised inside `Single_Assignment.assign`, which then surfaced as `exception Option` |
 | [`expose_foreign`](my_better_isabelle_prover/patches/expose_foreign.md) | user | native | ✓ | Stop hiding Poly/ML's `Foreign`/`RunCall`/`CInterface` FFI structures, which 2025-2 forgets during the Pure bootstrap |
 | [`register_thy`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md) | dev | native | ✓ | Restores `Thy_Info.register_thy`, removed in 2025-2 |
 | [`show_types_nv`](my_better_isabelle_prover/patches/show_types_nv.md) | dev | ✓ | ✓ | Custom `show_types_nv` option: suppress type annotations on free/fixed variables only |
@@ -83,34 +83,22 @@ Each feature is either `user` or `dev`, and `my-better-isabelle patch` applies
 reflects only the selected category (`user` by default). Categories live in
 [`patches/categories.toml`](my_better_isabelle_prover/patches/categories.toml).
 
-### `pide_control` — PIDE LSP control extensions (Isabelle2024 only; retired on 2025-2)
+### `future_assign_interrupt` — don't turn a cancelled future into `exception Option`
 
-> [!NOTE]
-> **Retired on Isabelle2025-2** and reversed from that distribution. Isabelle-MCP
-> forked the `vscode_server` sources into its own `isabelle mcp_server` component,
-> so the five LSP requests below are now that component's own code; and it replaced
-> the ML half (`Execution.cancel_execution` + the `Document.cancel_execution`
-> protocol command) with an ML prelude injected at prover startup via
-> `use_prelude`, built from `Execution.discontinue` + `Execution.cancel` — public
-> API, no patch. That removes this feature's worst cost: patching `src/Pure/**.ML`
-> invalidated every session heap on the machine.
->
-> It survives for Isabelle2024, whose VSCode sources the fork does not target
-> (three of its files do not exist there and the Pure Scala API differs).
+The one feature here that fixes a defect rather than adding a capability.
+`Future.assign_result` re-raised only `Fail` and dropped every other exception
+from `Single_Assignment.assign`. An asynchronous interrupt — from
+`Timeout.apply`, or from cancelling a racer's future group — could land in that
+call's interruptible window, get swallowed, and leave the result unassigned; the
+`the` on the next line then raised `exception Option` at `General/basics.ML:84`,
+naming neither the interrupt nor its origin. The patch re-raises every exception,
+restoring the invariant that code past that point depends on.
 
-Edits five ML/Scala files to add these LSP requests (full request/response
-protocol in **[pide_control.md](my_better_isabelle_prover/patches/pide_control.md)**):
-
-- **`PIDE/theory_status`** — per-theory processing status for *all* loaded
-  theories, including auto-loaded dependencies.
-- **`PIDE/cancel_execution`** — immediately cancel all running processing,
-  globally.
-- **`PIDE/command_at_position`** — source text and range of the Isar command
-  enclosing a position, with no caret move.
-- **`PIDE/output_at_position`** — source, range, *and* rendered prover output of
-  the command enclosing a position, in one request, with no caret move.
-- **`PIDE/symbols`** — dump the `etc/symbols` translation table(s) so a client
-  can decode/encode Isabelle symbol notation (`\<forall>` ↔ ∀).
+Reachable from ordinary proof work, not just from code that touches futures:
+Pure takes the vulnerable path from `Lazy.force`, promise fulfilment and
+proof-term construction. Diagnosed 2026-09-08 — evidence, the exposed call
+paths, and the open upstream question in
+**[future_assign_interrupt.md](my_better_isabelle_prover/patches/future_assign_interrupt.md)**.
 
 ### `register_thy` — restore removed theory registration (Isabelle2025-2)
 
@@ -126,14 +114,16 @@ change — no `scala_build`. Details in
 Patch targets are keyed by the exact output of `isabelle version`
 (e.g. `Isabelle2024`, `Isabelle2025-2`).
 
-- **Isabelle2024** — `pide_control` authored, compiled (`scala_build` clean), and
-  runtime-tested; still applied there. `register_thy` ships natively, so no patch
-  is needed.
-- **Isabelle2025-2** — `pide_control` and `perspective_eof_clamp` were applied,
-  compiled and runtime-tested here, and have now been **reversed and retired**
-  (see the note above). The reversal was verified byte-for-byte against the
-  pristine sources and `isabelle scala_build -f` was re-run, so this distribution's
-  Scala is stock again. `register_thy` applies and reverse-detects cleanly.
+- **Isabelle2024** — `register_thy` and `expose_foreign` ship natively, so no
+  patch is needed for them.
+- **Isabelle2025-2** — `register_thy` applies and reverse-detects cleanly. The
+  two retired Scala features were reversed from this distribution before removal,
+  verified byte-for-byte against the pristine sources with `isabelle scala_build
+  -f` re-run, so its Scala is stock again.
+- **`future_assign_interrupt`** — authored against pristine source for both
+  versions (the same diff serves both: that region is byte-identical). Applied
+  and runtime-verified on Isabelle2025-2: 15 consecutive corpus passes clean,
+  against a pre-fix baseline that reproduced within 9 minutes.
 - **`show_types_nv`** — recorded for Isabelle2024 (reverse-recorded from the
   existing hand edit) and ported to Isabelle2025-2. On 2025-2 it is applied, the
   Pure heap has been rebuilt, and it is runtime-verified (free-variable type
@@ -148,8 +138,8 @@ Patch targets are keyed by the exact output of `isabelle version`
 - **[develop.md](develop.md)** — how the manager works, the patch-repository
   layout, and how to add a new patch.
 - **[RELEASE.md](RELEASE.md)** — how a version is cut and published to PyPI.
-- Feature docs (full protocol / rationale):
-  [`pide_control.md`](my_better_isabelle_prover/patches/pide_control.md),
+- Feature docs (rationale / evidence):
+  [`future_assign_interrupt.md`](my_better_isabelle_prover/patches/future_assign_interrupt.md),
   [`expose_foreign.md`](my_better_isabelle_prover/patches/expose_foreign.md),
   [`register_thy.md`](my_better_isabelle_prover/patches/Isabelle2025-2/register_thy.md),
   [`show_types_nv.md`](my_better_isabelle_prover/patches/show_types_nv.md),
